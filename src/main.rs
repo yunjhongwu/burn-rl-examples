@@ -1,3 +1,9 @@
+use crate::env::demo::Runner;
+
+mod components;
+mod env;
+mod utils;
+
 fn main() {
-    println!("Hello, world!");
+    Runner::run();
 }

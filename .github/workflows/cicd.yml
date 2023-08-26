@@ -1,0 +1,65 @@
+name: CICD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    types: [ "opened", "synchronize", "reopened", "ready_for_review" ]
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Checkout codebase
+        uses: actions/checkout@v3
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+          shared-key: ""
+          key: ""
+          env-vars: ""
+          workspaces: ". -> target"
+          cache-directories: ""
+          cache-targets: "true"
+          cache-on-failure: "false"
+          save-if: "true"
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Lint
+        run: cargo clippy --all-targets
+
+      - name: Doc
+        run: cargo doc --no-deps
+
+      - name: Build release
+        run: cargo build
+
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Test
+        run: |
+          cargo nextest run --workspace --no-run
+          cargo nextest run --workspace
