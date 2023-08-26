@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rand = "0.8.4"
 burn = "0.8.0"
+ndarray = "0.15.6"
+ndarray-linalg = "0.16.0"

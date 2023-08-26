@@ -1,3 +1,5 @@
-fn main() {
-    println!("Hello, world!");
-}
+mod components;
+mod env;
+mod utils;
+
+fn main() {}
