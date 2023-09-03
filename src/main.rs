@@ -1,9 +1,7 @@
-use crate::env::demo::Runner;
-
+mod agent;
+mod base;
 mod components;
+mod demo;
 mod env;
-mod utils;
 
-fn main() {
-    Runner::run();
-}
+fn main() {}
