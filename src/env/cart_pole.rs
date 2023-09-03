@@ -1,16 +1,61 @@
+use crate::base::Snapshot;
+use crate::base::{Action, State};
 use crate::components::env::Environment;
-use crate::utils::Snapshot;
 use std::f32::consts::PI;
 use std::fmt::Debug;
+use std::ops::{Index, IndexMut};
 
-pub type State = [f32; 4];
+#[derive(Debug, Copy, Clone)]
+pub struct CartPoleState {
+    data: [f32; 4],
+}
+
+impl Index<usize> for CartPoleState {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
+    }
+}
+
+impl IndexMut<usize> for CartPoleState {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.data[index]
+    }
+}
+
+impl CartPoleState {
+    pub fn new(state: [f32; 4]) -> Self {
+        Self { data: state }
+    }
+}
+
+impl State for CartPoleState {
+    type Data = [f32; 4];
+    fn data(&self) -> &Self::Data {
+        &self.data
+    }
+}
 
 #[allow(unused)]
-#[derive(Debug)]
-pub enum Action {
+#[derive(Debug, Copy, Clone)]
+pub enum CartPoleAction {
     Left,
     Right,
-    None,
+}
+
+impl Action for CartPoleAction {
+    fn random() -> Self {
+        if rand::random::<f32>() < 0.5 {
+            Self::Left
+        } else {
+            Self::Right
+        }
+    }
+
+    fn enumerate() -> Vec<Self> {
+        vec![Self::Left, Self::Right]
+    }
 }
 
 #[derive(Debug)]
@@ -25,7 +70,7 @@ pub struct CartPole {
     tau: f32,
     x_threshold: f32,
     theta_threshold: f32,
-    state: State,
+    state: CartPoleState,
     count: i32,
 }
 
@@ -50,37 +95,39 @@ impl CartPole {
             tau: 0.02,
             x_threshold: 2.4,
             theta_threshold: 12.0 * 2.0 * PI / 360.0,
-            state: [0.0, 0.0, 0.0, 0.0],
+            state: CartPoleState::new([0.0, 0.0, 0.0, 0.0]),
             count: 0,
         }
     }
 }
 
-impl Environment<State, Action> for CartPole {
+impl Environment for CartPole {
+    type State = CartPoleState;
+    type Action = CartPoleAction;
+
     fn render(&mut self) {}
 
-    fn reset(&mut self) -> Snapshot<State> {
+    fn reset(&mut self) -> Snapshot<CartPoleState> {
         for i in 0..4 {
             self.state[i] = (rand::random::<f32>() * 0.1) - 0.05;
         }
         self.count = 0;
-        Snapshot::<State>::new(self.state, 1.0, false)
+        Snapshot::<CartPoleState>::new(self.state, 1.0, false)
     }
 
-    fn step(&mut self, action: Action) -> Snapshot<State> {
+    fn step(&mut self, action: CartPoleAction) -> Snapshot<CartPoleState> {
         let force = match action {
-            Action::Left => -self.force_mag,
-            Action::Right => self.force_mag,
-            Action::None => 0.0,
+            CartPoleAction::Left => -self.force_mag,
+            CartPoleAction::Right => self.force_mag,
         };
         let cos_theta = f32::cos(self.state[2]);
         let sin_theta = f32::sin(self.state[2]);
         let temp = (force + self.polemass_length * f32::powi(self.state[3], 2) * sin_theta)
             / self.total_mass;
 
+        let pole_force = self.pole_mass * f32::powi(cos_theta, 2) / self.total_mass;
         let theta_acc = (self.gravity * sin_theta - temp * cos_theta)
-            / (self.length
-                * (4.0 / 3.0 - self.pole_mass * f32::powi(cos_theta, 2) / self.total_mass));
+            / (self.length * (4.0 / 3.0 - pole_force));
         let x_acc = temp - self.polemass_length * theta_acc * cos_theta / self.total_mass;
 
         self.state[0] += self.tau * self.state[1];
@@ -112,35 +159,35 @@ impl Environment<State, Action> for CartPole {
 #[cfg(test)]
 mod tests {
     use crate::components::env::Environment;
-    use crate::env::cart_pole::{Action, CartPole};
+    use crate::env::cart_pole::CartPole;
     use ndarray::Array1;
     use ndarray_linalg::assert_close_max;
 
     #[test]
     fn test_cart_pole() {
         let mut env = CartPole::new();
-        let snapshot1 = env.step(Action::Left);
+        let snapshot1 = env.step(<CartPole as Environment>::Action::Left);
 
         assert!(!snapshot1.mask());
         assert_eq!(snapshot1.reward(), 1.0);
         assert_close_max!(
-            &Array1::from(snapshot1.state().to_vec()),
+            &Array1::from(snapshot1.state().data.to_vec()),
             &Array1::from(vec![0.0, -0.19512196, 0.0, 0.29268293]),
             1e-8
         );
 
-        env.step(Action::Right);
-        env.step(Action::Right);
-        let snapshot2 = env.step(Action::Left);
+        env.step(<CartPole as Environment>::Action::Right);
+        env.step(<CartPole as Environment>::Action::Right);
+        let snapshot2 = env.step(<CartPole as Environment>::Action::Left);
         assert_close_max!(
-            &Array1::from(snapshot2.state().to_vec()),
+            &Array1::from(snapshot2.state().data.to_vec()),
             &Array1::from(vec![-0.00000169, -0.00016741, 0.00003705, 0.00369301]),
             1e-8
         );
 
         for _i in 0..79 {
-            env.step(Action::None);
+            env.step(<CartPole as Environment>::Action::Left);
         }
-        assert!(env.step(Action::None).mask());
+        assert!(env.step(<CartPole as Environment>::Action::Left).mask());
     }
 }

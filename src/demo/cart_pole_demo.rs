@@ -1,7 +1,7 @@
+use crate::base::Snapshot;
 use crate::components::agent::Agent;
 use crate::components::env::Environment;
-use crate::env::cart_pole::{Action, CartPole, State};
-use crate::utils::Snapshot;
+use crate::env::cart_pole::CartPole;
 use nannou::prelude::*;
 use nannou::text::Align;
 use nannou::window::Id;
@@ -14,32 +14,41 @@ impl RuleBasedCartPole {
     }
 }
 
-impl Agent<State, Action> for RuleBasedCartPole {
-    fn react(&mut self, state: &State) -> Action {
+impl Agent for RuleBasedCartPole {
+    type State = <CartPole as Environment>::State;
+    type Action = <CartPole as Environment>::Action;
+    fn react(&mut self, state: &Self::State) -> Self::Action {
         if state[2] < 0.0 {
-            Action::Left
+            Self::Action::Left
         } else {
-            Action::Right
+            Self::Action::Right
         }
     }
 
     fn collect(&mut self, _reward: f32, _done: bool) {}
 
     fn reset(&mut self) {}
+
+    fn is_eval(&self) -> bool {
+        false
+    }
 }
 
 pub struct Runner {
     id: Id,
     env: CartPole,
     agent: RuleBasedCartPole,
-    snapshot: Snapshot<State>,
+    snapshot: Snapshot<<CartPole as Environment>::State>,
     episode: u32,
 }
 
 impl Runner {
+    #[allow(unused)]
     const CART_HEIGHT: f32 = 30.0;
+    #[allow(unused)]
     const CART_WIDTH: f32 = 50.0;
 
+    #[allow(unused)]
     fn new(id: Id) -> Self {
         let mut env = CartPole::new();
         let state = env.reset();
@@ -52,12 +61,15 @@ impl Runner {
         }
     }
 
+    #[allow(unused)]
     pub fn run() {
         nannou::app(Self::model)
             .loop_mode(LoopMode::RefreshSync)
             .update(Self::update)
             .run();
     }
+
+    #[allow(unused)]
     fn step(&mut self) {
         if self.snapshot.mask() {
             self.snapshot = self.env.reset();
@@ -68,23 +80,28 @@ impl Runner {
         self.snapshot = self.env.step(self.agent.react(self.snapshot.state()));
     }
 
-    fn state(&self) -> &State {
+    #[allow(unused)]
+    fn state(&self) -> &<CartPole as Environment>::State {
         self.snapshot.state()
     }
 
+    #[allow(unused)]
     fn id(&self) -> Id {
         self.id
     }
 
+    #[allow(unused)]
     fn model(app: &App) -> Self {
         let id = app.new_window().view(Self::view).build().unwrap();
         Runner::new(id)
     }
 
+    #[allow(unused)]
     fn update(_app: &App, model: &mut Self, _update: Update) {
         model.step();
     }
 
+    #[allow(unused)]
     fn view(app: &App, model: &Self, frame: Frame) {
         let draw = app.draw();
         let (window_width, window_height) = app.window(model.id()).unwrap().inner_size_points();
