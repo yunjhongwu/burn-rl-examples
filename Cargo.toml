@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 rand = "0.8.4"
-burn = "0.8.0"
+burn = "0.9.0"
 burn-autodiff = "0.8.0"
 burn-ndarray = "0.8.0"
 ndarray = "0.15.6"
