@@ -86,7 +86,7 @@ pub struct Transition<S: State, A: Action> {
 mod tests {
     use crate::base::{Action, Memory, State};
 
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy, Clone, Default)]
     struct TestAction {
         data: i32,
     }
@@ -101,7 +101,7 @@ mod tests {
         }
     }
 
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy, Clone, Default)]
     struct TestState {
         data: f32,
     }

@@ -1,11 +1,15 @@
 use crate::base::Snapshot;
 use crate::base::{Action, State};
+use crate::components::agent::Agent;
 use crate::components::env::Environment;
+use nannou::prelude::*;
+use nannou::text::Align;
+use nannou::window::Id;
 use std::f32::consts::PI;
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct CartPoleState {
     data: [f32; 4],
 }
@@ -25,6 +29,7 @@ impl IndexMut<usize> for CartPoleState {
 }
 
 impl CartPoleState {
+    #[allow(unused)]
     pub fn new(state: [f32; 4]) -> Self {
         Self { data: state }
     }
@@ -44,9 +49,15 @@ pub enum CartPoleAction {
     Right,
 }
 
+impl Default for CartPoleAction {
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
 impl Action for CartPoleAction {
     fn random() -> Self {
-        if rand::random::<f32>() < 0.5 {
+        if random::<f32>() < 0.5 {
             Self::Left
         } else {
             Self::Right
@@ -95,7 +106,7 @@ impl CartPole {
             tau: 0.02,
             x_threshold: 2.4,
             theta_threshold: 12.0 * 2.0 * PI / 360.0,
-            state: CartPoleState::new([0.0, 0.0, 0.0, 0.0]),
+            state: CartPoleState::default(),
             count: 0,
         }
     }
@@ -109,7 +120,7 @@ impl Environment for CartPole {
 
     fn reset(&mut self) -> Snapshot<CartPoleState> {
         for i in 0..4 {
-            self.state[i] = (rand::random::<f32>() * 0.1) - 0.05;
+            self.state[i] = (random::<f32>() * 0.1) - 0.05;
         }
         self.count = 0;
         Snapshot::<CartPoleState>::new(self.state, 1.0, false)
@@ -153,6 +164,113 @@ impl Environment for CartPole {
             || self.state[2] > self.theta_threshold;
 
         Snapshot::new(self.state, 1.0, self.count > 500 || done)
+    }
+}
+
+pub struct Visualizer<A: Agent> {
+    id: Id,
+    env: CartPole,
+    agent: A,
+    snapshot: Snapshot<<CartPole as Environment>::State>,
+    episode: u32,
+}
+
+impl<A: Agent<State = CartPoleState, Action = CartPoleAction> + 'static> Visualizer<A> {
+    #[allow(unused)]
+    const CART_HEIGHT: f32 = 30.0;
+    #[allow(unused)]
+    const CART_WIDTH: f32 = 50.0;
+
+    #[allow(unused)]
+    fn new(id: Id) -> Self {
+        let mut env = CartPole::new();
+        let state = env.reset();
+        Self {
+            id,
+            env,
+            agent: A::default(),
+            snapshot: state,
+            episode: 0,
+        }
+    }
+
+    #[allow(unused)]
+    pub fn run() {
+        let model: app::ModelFn<Self> = move |app: &App| {
+            let id = app.new_window().view(Self::view).build().unwrap();
+            Self::new(id)
+        };
+
+        nannou::app(model)
+            .loop_mode(LoopMode::RefreshSync)
+            .update(Self::update)
+            .run();
+    }
+
+    #[allow(unused)]
+    fn step(&mut self) {
+        if self.snapshot.mask() {
+            self.snapshot = self.env.reset();
+            self.episode += 1;
+            return;
+        }
+
+        self.snapshot = self.env.step(self.agent.react(self.snapshot.state()));
+    }
+
+    #[allow(unused)]
+    fn state(&self) -> &<CartPole as Environment>::State {
+        self.snapshot.state()
+    }
+
+    #[allow(unused)]
+    fn id(&self) -> Id {
+        self.id
+    }
+
+    #[allow(unused)]
+    fn update(_app: &App, model: &mut Self, _update: Update) {
+        model.step();
+    }
+
+    #[allow(unused)]
+    fn view(app: &App, model: &Self, frame: Frame) {
+        let draw = app.draw();
+        let (window_width, window_height) = app.window(model.id()).unwrap().inner_size_points();
+        let state = model.state();
+        let position = state[0];
+        let cart_x = window_width * (position / (2.0 * 4.8));
+        let cart_y = window_height * -0.2;
+        let angle = state[2] + 0.5 * PI;
+        let pole_len = 0.25 * window_height;
+
+        draw.background().color(WHITE);
+        draw.line()
+            .start(Point2::new(-0.5 * window_width, cart_y))
+            .end(Point2::new(0.5 * window_width, cart_y))
+            .weight(2.0)
+            .color(BLACK);
+        draw.rect()
+            .x_y(cart_x, cart_y)
+            .w_h(Self::CART_WIDTH, Self::CART_HEIGHT)
+            .color(BLACK);
+        draw.line()
+            .start(Point2::new(cart_x, cart_y))
+            .end(Point2::new(
+                cart_x + f32::cos(angle) * pole_len,
+                cart_y + f32::sin(angle) * pole_len,
+            ))
+            .weight(8.0)
+            .color(ORANGE);
+
+        draw.text(&format!("Episode: {}", model.episode))
+            .x_y(window_width * -0.4, window_height * 0.6)
+            .y_align_text(Align::Start)
+            .left_justify()
+            .font_size(24)
+            .color(BLACK);
+
+        draw.to_frame(app, &frame).unwrap();
     }
 }
 

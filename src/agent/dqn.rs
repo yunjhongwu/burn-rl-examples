@@ -2,6 +2,7 @@ use crate::base::{Action, State};
 use crate::components::agent::Agent;
 use std::marker::PhantomData;
 
+#[derive(Default)]
 struct Dqn<S: State, A: Action> {
     is_eval: bool,
     state: PhantomData<S>,

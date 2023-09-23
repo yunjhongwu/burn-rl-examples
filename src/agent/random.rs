@@ -2,6 +2,7 @@ use crate::base::{Action, State};
 use crate::components::agent::Agent;
 use std::marker::PhantomData;
 
+#[derive(Default)]
 struct Random<S: State, A: Action> {
     state: PhantomData<S>,
     action: PhantomData<A>,
