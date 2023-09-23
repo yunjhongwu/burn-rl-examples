@@ -1,6 +1,6 @@
 use crate::base::{Action, State};
 
-pub trait Agent {
+pub trait Agent: Default {
     type State: State;
     type Action: Action;
 
