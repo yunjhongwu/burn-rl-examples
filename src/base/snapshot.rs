@@ -6,15 +6,15 @@ use std::fmt::Debug;
 pub struct Snapshot<S: State> {
     state: S,
     reward: f64,
-    mask: bool,
+    done: bool,
 }
 
 impl<S: State> Snapshot<S> {
-    pub fn new(state: S, reward: f64, mask: bool) -> Self {
+    pub fn new(state: S, reward: f64, done: bool) -> Self {
         Self {
             state,
             reward,
-            mask,
+            done,
         }
     }
 
@@ -29,7 +29,7 @@ impl<S: State> Snapshot<S> {
     }
 
     #[allow(unused)]
-    pub fn mask(&self) -> bool {
-        self.mask
+    pub fn done(&self) -> bool {
+        self.done
     }
 }

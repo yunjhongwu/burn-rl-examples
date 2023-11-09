@@ -1,4 +1,5 @@
-use crate::demo::cart_pole_agent::RuleBasedCartPole;
+use crate::components::env::Environment;
+use crate::env::cart_pole::CartPole;
 
 mod agent;
 mod base;
@@ -7,5 +8,7 @@ mod demo;
 mod env;
 
 fn main() {
-    env::cart_pole::Visualizer::<RuleBasedCartPole>::run();
+    let mut env = CartPole::new();
+    let snapshot = env.step(<CartPole as Environment>::Action::Left);
+    println!("snapshot: {:?}", snapshot);
 }
