@@ -27,7 +27,7 @@ jobs:
           override: true
 
       - name: Install dependencies
-        run: apt-get install -y libsdl2-dev libsdl2-gfx-dev
+        run: sudo apt install -y libsdl2-dev libsdl2-gfx-dev
 
       - name: Checkout codebase
         uses: actions/checkout@v3
