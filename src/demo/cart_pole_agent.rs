@@ -1,3 +1,4 @@
+use crate::base::State;
 use crate::components::agent::Agent;
 use crate::components::env::Environment;
 use crate::env::cart_pole::CartPole;
@@ -11,7 +12,7 @@ impl Agent for RuleBasedCartPole {
     type State = <CartPole as Environment>::State;
     type Action = <CartPole as Environment>::Action;
     fn react(&mut self, state: &Self::State) -> Self::Action {
-        if state[2] < 0.0 {
+        if state.data()[2] < 0.0 {
             Self::Action::Left
         } else {
             Self::Action::Right
