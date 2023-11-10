@@ -9,13 +9,13 @@ pub struct RuleBasedCartPole {}
 impl RuleBasedCartPole {}
 
 impl Agent for RuleBasedCartPole {
-    type State = <CartPole as Environment>::State;
-    type Action = <CartPole as Environment>::Action;
-    fn react(&mut self, state: &Self::State) -> Self::Action {
+    type StateType = <CartPole as Environment>::StateType;
+    type ActionType = <CartPole as Environment>::ActionType;
+    fn react(&mut self, state: &Self::StateType) -> Self::ActionType {
         if state.data()[2] < 0.0 {
-            Self::Action::Left
+            Self::ActionType::Left
         } else {
-            Self::Action::Right
+            Self::ActionType::Right
         }
     }
 

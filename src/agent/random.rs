@@ -1,19 +1,28 @@
-use crate::base::{Action, State};
+use crate::base::Action;
 use crate::components::agent::Agent;
+use crate::components::env::Environment;
 use std::marker::PhantomData;
 
-#[derive(Default)]
-struct Random<S: State, A: Action> {
-    state: PhantomData<S>,
-    action: PhantomData<A>,
+pub struct Random<E: Environment> {
+    state: PhantomData<E::StateType>,
+    action: PhantomData<E::ActionType>,
 }
 
-impl<S: State, A: Action> Agent for Random<S, A> {
-    type State = S;
-    type Action = A;
+impl<E: Environment> Default for Random<E> {
+    fn default() -> Self {
+        Self {
+            state: PhantomData,
+            action: PhantomData,
+        }
+    }
+}
 
-    fn react(&mut self, _state: &Self::State) -> Self::Action {
-        Self::Action::random()
+impl<E: Environment> Agent for Random<E> {
+    type StateType = E::StateType;
+    type ActionType = E::ActionType;
+
+    fn react(&mut self, _state: &Self::StateType) -> Self::ActionType {
+        Self::ActionType::random()
     }
 
     fn collect(&mut self, _reward: f32, _done: bool) {}

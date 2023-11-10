@@ -1,28 +1,28 @@
-use crate::base::{Action, State};
+use crate::components::env::Environment;
 use rand::prelude::SliceRandom;
 use std::collections::VecDeque;
 
 #[allow(unused)]
-pub struct Memory<S: State, A: Action> {
-    state: VecDeque<S>,
-    next_state: VecDeque<S>,
-    action: VecDeque<A>,
+pub struct Memory<E: Environment> {
+    state: VecDeque<E::StateType>,
+    next_state: VecDeque<E::StateType>,
+    action: VecDeque<E::ActionType>,
     reward: VecDeque<f32>,
 }
 
-impl<S: State, A: Action> Memory<S, A> {
+impl<E: Environment> Memory<E> {
     #[allow(unused)]
     pub fn new() -> Self {
         Self {
-            state: VecDeque::<S>::new(),
-            next_state: VecDeque::<S>::new(),
-            action: VecDeque::<A>::new(),
+            state: VecDeque::<E::StateType>::new(),
+            next_state: VecDeque::<E::StateType>::new(),
+            action: VecDeque::<E::ActionType>::new(),
             reward: VecDeque::<f32>::new(),
         }
     }
 
     #[allow(unused)]
-    pub fn push_transition(&mut self, transition: Transition<S, A>) {
+    pub fn push_transition(&mut self, transition: Transition<E>) {
         self.state.push_back(transition.state);
         self.next_state.push_back(transition.next_state);
         self.action.push_back(transition.action);
@@ -30,7 +30,13 @@ impl<S: State, A: Action> Memory<S, A> {
     }
 
     #[allow(unused)]
-    pub fn push(&mut self, state: S, next_state: S, action: A, reward: f32) {
+    pub fn push(
+        &mut self,
+        state: E::StateType,
+        next_state: E::StateType,
+        action: E::ActionType,
+        reward: f32,
+    ) {
         self.state.push_back(state);
         self.next_state.push_back(next_state);
         self.action.push_back(action);
@@ -38,7 +44,7 @@ impl<S: State, A: Action> Memory<S, A> {
     }
 
     #[allow(unused)]
-    pub fn pop(&mut self) -> Option<Transition<S, A>> {
+    pub fn pop(&mut self) -> Option<Transition<E>> {
         let state = self.state.pop_front()?;
         let next_state = self.next_state.pop_front()?;
         let action = self.action.pop_front()?;
@@ -52,7 +58,7 @@ impl<S: State, A: Action> Memory<S, A> {
     }
 
     #[allow(unused)]
-    pub fn sample(&self, size: usize) -> Memory<S, A> {
+    pub fn sample(&self, size: usize) -> Memory<E> {
         let mut rng = rand::thread_rng();
         let mut indices: Vec<usize> = (0..self.len()).collect();
         indices.shuffle(&mut rng);
@@ -75,20 +81,27 @@ impl<S: State, A: Action> Memory<S, A> {
 }
 
 #[allow(unused)]
-pub struct Transition<S: State, A: Action> {
-    state: S,
-    next_state: S,
-    action: A,
+pub struct Transition<E: Environment> {
+    state: E::StateType,
+    next_state: E::StateType,
+    action: E::ActionType,
     reward: f32,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::base::{Action, Memory, State};
+    use crate::base::{Action, Memory, Snapshot, State};
+    use crate::components::env::Environment;
 
     #[derive(Debug, Copy, Clone, Default)]
     struct TestAction {
         data: i32,
+    }
+
+    impl From<u32> for TestAction {
+        fn from(value: u32) -> Self {
+            value.into()
+        }
     }
 
     impl Action for TestAction {
@@ -111,11 +124,34 @@ mod tests {
         fn data(&self) -> &Self::Data {
             &self.data
         }
+
+        fn size() -> usize {
+            1
+        }
+    }
+
+    struct TestEnv {}
+
+    impl Environment for TestEnv {
+        type StateType = TestState;
+        type ActionType = TestAction;
+
+        fn state(&self) -> Self::StateType {
+            todo!()
+        }
+
+        fn reset(&mut self) -> Snapshot<Self::StateType> {
+            todo!()
+        }
+
+        fn step(&mut self, _action: Self::ActionType) -> Snapshot<Self::StateType> {
+            todo!()
+        }
     }
 
     #[test]
     fn test_memory() {
-        let mut memory = Memory::<TestState, TestAction>::new();
+        let mut memory = Memory::<TestEnv>::new();
         for i in 0..20 {
             memory.push(
                 TestState { data: i as f32 },

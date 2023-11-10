@@ -1,9 +1,10 @@
 use crate::base::{Action, Snapshot, State};
 
 pub trait Environment {
-    type State: State;
-    type Action: Action;
+    type StateType: State;
+    type ActionType: Action;
 
-    fn reset(&mut self) -> Snapshot<Self::State>;
-    fn step(&mut self, action: Self::Action) -> Snapshot<Self::State>;
+    fn state(&self) -> Self::StateType;
+    fn reset(&mut self) -> Snapshot<Self::StateType>;
+    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self::StateType>;
 }
