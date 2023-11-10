@@ -1,10 +1,10 @@
 use crate::base::{Action, State};
 
 pub trait Agent: Default {
-    type State: State;
-    type Action: Action;
+    type StateType: State;
+    type ActionType: Action;
 
-    fn react(&mut self, state: &Self::State) -> Self::Action;
+    fn react(&mut self, state: &Self::StateType) -> Self::ActionType;
     fn collect(&mut self, reward: f32, done: bool);
     fn reset(&mut self);
 

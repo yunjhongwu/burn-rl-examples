@@ -25,6 +25,10 @@ impl State for CartPoleState {
     fn data(&self) -> &Self::Data {
         &self.data
     }
+
+    fn size() -> usize {
+        4
+    }
 }
 
 #[allow(unused)]
@@ -34,9 +38,29 @@ pub enum CartPoleAction {
     Right,
 }
 
+impl From<usize> for CartPoleAction {
+    fn from(action: usize) -> Self {
+        match action {
+            0 => Self::Left,
+            1 => Self::Right,
+            _ => panic!("Invalid action"),
+        }
+    }
+}
+
 impl Default for CartPoleAction {
     fn default() -> Self {
         Self::Left
+    }
+}
+
+impl From<u32> for CartPoleAction {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Self::Left,
+            1 => Self::Right,
+            _ => panic!("Invalid action"),
+        }
     }
 }
 
@@ -63,16 +87,20 @@ impl CartPole {
     #[allow(unused)]
     pub fn new() -> Self {
         Self {
-            gym_env: CartPoleEnv::new(RenderMode::None),
+            gym_env: CartPoleEnv::new(RenderMode::Human),
         }
     }
 }
 
 impl Environment for CartPole {
-    type State = CartPoleState;
-    type Action = CartPoleAction;
+    type StateType = CartPoleState;
+    type ActionType = CartPoleAction;
 
-    fn reset(&mut self) -> Snapshot<Self::State> {
+    fn state(&self) -> Self::StateType {
+        self.gym_env.state.into()
+    }
+
+    fn reset(&mut self) -> Snapshot<Self::StateType> {
         self.gym_env.reset(None, false, None);
         Snapshot::new(self.gym_env.state.into(), 1.0, false)
     }
