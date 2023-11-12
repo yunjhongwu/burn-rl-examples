@@ -14,3 +14,6 @@ ndarray-linalg = "0.16.0"
 ordered-float = "4.1.1"
 gym-rs = "0.3.0"
 serde = "1.0.130"
+
+[features]
+default = ["burn/ndarray"]

@@ -8,7 +8,7 @@ use burn::tensor::backend::Backend;
 use burn::tensor::{ElementConversion, Tensor};
 use std::marker::PhantomData;
 
-struct Dqn<E: Environment, B: Backend> {
+pub struct Dqn<E: Environment, B: Backend> {
     is_eval: bool,
     model: Model<B>,
     state: PhantomData<E::StateType>,
@@ -16,8 +16,8 @@ struct Dqn<E: Environment, B: Backend> {
 }
 
 impl<E: Environment, B: Backend> Dqn<E, B> {
-    fn convert(_state: &E::StateType) -> Tensor<B, 1> {
-        todo!()
+    fn convert(state: &E::StateType) -> Tensor<B, 2> {
+        state.data().unsqueeze()
     }
 }
 
