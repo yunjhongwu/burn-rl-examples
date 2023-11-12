@@ -92,6 +92,8 @@ pub struct Transition<E: Environment> {
 mod tests {
     use crate::base::{Action, Memory, Snapshot, State};
     use crate::components::env::Environment;
+    use burn::tensor::backend::Backend;
+    use burn::tensor::Tensor;
 
     #[derive(Debug, Copy, Clone, Default)]
     struct TestAction {
@@ -121,10 +123,10 @@ mod tests {
 
     impl State for TestState {
         type Data = f32;
-        fn data(&self) -> &Self::Data {
-            &self.data
-        }
 
+        fn data<B: Backend>(&self) -> Tensor<B, 1> {
+            Tensor::<B, 1>::from_floats([self.data])
+        }
         fn size() -> usize {
             1
         }

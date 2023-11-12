@@ -1,6 +1,8 @@
 use crate::base::Snapshot;
 use crate::base::{Action, State};
 use crate::components::env::Environment;
+use burn::tensor::backend::Backend;
+use burn::tensor::Tensor;
 use gym_rs::core::Env;
 use gym_rs::envs::classical_control::cartpole::{CartPoleEnv, CartPoleObservation};
 use gym_rs::utils::renderer::RenderMode;
@@ -9,21 +11,22 @@ use std::fmt::Debug;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct CartPoleState {
-    data: [f64; 4],
+    data: [f32; 4],
 }
 
 impl From<CartPoleObservation> for CartPoleState {
     fn from(observation: CartPoleObservation) -> Self {
+        let vec = Vec::<f64>::from(observation);
         Self {
-            data: Vec::<f64>::from(observation).try_into().unwrap(),
+            data: [vec[0] as f32, vec[1] as f32, vec[2] as f32, vec[3] as f32],
         }
     }
 }
 
 impl State for CartPoleState {
-    type Data = [f64; 4];
-    fn data(&self) -> &Self::Data {
-        &self.data
+    type Data = [f32; 4];
+    fn data<B: Backend>(&self) -> Tensor<B, 1> {
+        Tensor::<B, 1>::from_floats(self.data)
     }
 
     fn size() -> usize {
