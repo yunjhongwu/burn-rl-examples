@@ -35,9 +35,8 @@ impl DQNModel {
 impl Model<DQNBackend> for DQNModel {
     fn forward<const D: usize>(&self, input: Tensor<DQNBackend, D>) -> Tensor<DQNBackend, D> {
         let layer_0_output = relu(self.linear_0.forward(input));
-        let layer_1_output = relu(self.linear_1.forward(layer_0_output));
 
-        layer_1_output
+        relu(self.linear_1.forward(layer_0_output))
     }
 }
 
