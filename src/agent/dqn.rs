@@ -1,7 +1,8 @@
 use crate::base::{Action, Memory, Model, State};
 use crate::components::agent::Agent;
 use crate::components::env::Environment;
-use burn::nn::loss::{MSELoss, Reduction};
+use crate::utils::SmoothL1Loss;
+use burn::nn::loss::Reduction;
 use burn::optim::{GradientsParams, Optimizer};
 use burn::tensor::backend::ADBackend;
 use burn::tensor::{ElementConversion, Tensor};
@@ -72,7 +73,7 @@ impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Agent for Dqn<
 }
 
 impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
-    pub fn train<const SIZE: usize, T>(
+    pub fn train<const SAMPLE_SIZE: usize, const SIZE: usize, T>(
         &mut self,
         mut policy_net: M,
         memory: &Memory<E, B, SIZE>,
@@ -86,7 +87,8 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
         let next_state_values = self
             .target_net
             .forward(sample.next_state_batch())
-            .max_dim(1);
+            .max_dim(1)
+            .detach();
 
         let not_done_batch = sample.not_done_batch();
         let reward_batch = sample.reward_batch();
@@ -94,7 +96,7 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
         let expected_state_action_values =
             (next_state_values * not_done_batch).mul_scalar(GAMMA) + reward_batch;
 
-        let loss = MSELoss::new().forward(
+        let loss = SmoothL1Loss::default().forward(
             state_action_values,
             expected_state_action_values,
             Reduction::Mean,
