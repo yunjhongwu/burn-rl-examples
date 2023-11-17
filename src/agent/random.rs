@@ -21,15 +21,7 @@ impl<E: Environment> Agent for Random<E> {
     type StateType = E::StateType;
     type ActionType = E::ActionType;
 
-    fn react(&mut self, _state: &Self::StateType) -> Self::ActionType {
+    fn react(&self, _state: &Self::StateType) -> Self::ActionType {
         Self::ActionType::random()
-    }
-
-    fn collect(&mut self, _reward: f32, _done: bool) {}
-
-    fn reset(&mut self) {}
-
-    fn is_eval(&self) -> bool {
-        true
     }
 }

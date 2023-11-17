@@ -1,16 +1,16 @@
-use crate::base::State;
+use crate::base::{ElemType, State};
 use std::fmt::Debug;
 
 #[allow(unused)]
 #[derive(Debug)]
 pub struct Snapshot<S: State> {
     state: S,
-    reward: f64,
+    reward: ElemType,
     done: bool,
 }
 
 impl<S: State> Snapshot<S> {
-    pub fn new(state: S, reward: f64, done: bool) -> Self {
+    pub fn new(state: S, reward: ElemType, done: bool) -> Self {
         Self {
             state,
             reward,
@@ -24,7 +24,7 @@ impl<S: State> Snapshot<S> {
     }
 
     #[allow(unused)]
-    pub fn reward(&self) -> f64 {
+    pub fn reward(&self) -> ElemType {
         self.reward
     }
 

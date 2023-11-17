@@ -1,5 +1,5 @@
-use crate::base::Snapshot;
 use crate::base::{Action, State};
+use crate::base::{ElemType, Snapshot};
 use crate::components::env::Environment;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -11,20 +11,25 @@ use std::fmt::Debug;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct CartPoleState {
-    data: [f32; 4],
+    data: [ElemType; 4],
 }
 
 impl From<CartPoleObservation> for CartPoleState {
     fn from(observation: CartPoleObservation) -> Self {
         let vec = Vec::<f64>::from(observation);
         Self {
-            data: [vec[0] as f32, vec[1] as f32, vec[2] as f32, vec[3] as f32],
+            data: [
+                vec[0] as ElemType,
+                vec[1] as ElemType,
+                vec[2] as ElemType,
+                vec[3] as ElemType,
+            ],
         }
     }
 }
 
 impl State for CartPoleState {
-    type Data = [f32; 4];
+    type Data = [ElemType; 4];
     fn data<B: Backend>(&self) -> Tensor<B, 1> {
         Tensor::<B, 1>::from_floats(self.data)
     }
@@ -67,9 +72,18 @@ impl From<u32> for CartPoleAction {
     }
 }
 
+impl From<CartPoleAction> for u32 {
+    fn from(action: CartPoleAction) -> Self {
+        match action {
+            CartPoleAction::Left => 0,
+            CartPoleAction::Right => 1,
+        }
+    }
+}
+
 impl Action for CartPoleAction {
     fn random() -> Self {
-        if random::<f32>() < 0.5 {
+        if random::<ElemType>() < 0.5 {
             Self::Left
         } else {
             Self::Right
@@ -78,6 +92,9 @@ impl Action for CartPoleAction {
 
     fn enumerate() -> Vec<Self> {
         vec![Self::Left, Self::Right]
+    }
+    fn size() -> usize {
+        2
     }
 }
 
@@ -88,9 +105,13 @@ pub struct CartPole {
 
 impl CartPole {
     #[allow(unused)]
-    pub fn new() -> Self {
+    pub fn new(visualized: bool) -> Self {
         Self {
-            gym_env: CartPoleEnv::new(RenderMode::Human),
+            gym_env: CartPoleEnv::new(if visualized {
+                RenderMode::Human
+            } else {
+                RenderMode::None
+            }),
         }
     }
 }
@@ -116,7 +137,7 @@ impl Environment for CartPole {
         let action_reward = self.gym_env.step(action);
         Snapshot::new(
             action_reward.observation.into(),
-            *action_reward.reward,
+            *action_reward.reward as ElemType,
             action_reward.done,
         )
     }
