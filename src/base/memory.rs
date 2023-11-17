@@ -39,8 +39,8 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
         reward: ElemType,
         done: bool,
     ) {
-        self.state.push(state.data());
-        self.next_state.push(next_state.data());
+        self.state.push(state.to_tensor());
+        self.next_state.push(next_state.to_tensor());
         self.action.push(action.into());
         self.reward.push(reward);
         self.done.push(done);
@@ -86,7 +86,7 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
             .reshape([data.len() as i32, -1])
     }
     pub fn next_state_batch(&self) -> Tensor<B, 2> {
-        Self::stack(&self.state, |state| state.clone())
+        Self::stack(&self.next_state, |state| state.clone())
     }
     pub fn state_batch(&self) -> Tensor<B, 2> {
         Self::stack(&self.state, |state| state.clone())
@@ -101,23 +101,13 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
     }
     pub fn not_done_batch(&self) -> Tensor<B, 2> {
         Self::stack(&self.done, |done| {
-            Tensor::from_floats([if *done { 1.0 } else { 0.0 }])
+            Tensor::from_floats([if *done { 0.0 } else { 1.0 }])
         })
     }
 
-    #[allow(unused)]
     pub fn len(&self) -> usize {
         self.state.len()
     }
-}
-
-#[allow(unused)]
-pub struct Transition<E: Environment> {
-    state: E::StateType,
-    next_state: E::StateType,
-    action: E::ActionType,
-    reward: ElemType,
-    done: bool,
 }
 
 #[cfg(test)]
@@ -126,7 +116,7 @@ mod tests {
     use crate::components::env::Environment;
     use burn::backend::NdArrayBackend;
     use burn::tensor::backend::Backend;
-    use burn::tensor::Tensor;
+    use burn::tensor::{Shape, Tensor};
 
     #[derive(Debug, Copy, Clone, Default)]
     struct TestAction {
@@ -157,14 +147,14 @@ mod tests {
 
     #[derive(Debug, Copy, Clone, Default)]
     struct TestState {
-        data: ElemType,
+        data: [ElemType; 2],
     }
 
     impl State for TestState {
-        type Data = ElemType;
+        type Data = [ElemType; 2];
 
-        fn data<B: Backend>(&self) -> Tensor<B, 1> {
-            Tensor::<B, 1>::from_floats([self.data])
+        fn to_tensor<B: Backend>(&self) -> Tensor<B, 1> {
+            Tensor::<B, 1>::from_floats(self.data)
         }
         fn size() -> usize {
             1
@@ -198,10 +188,10 @@ mod tests {
         for i in 0..20 {
             memory.push(
                 TestState {
-                    data: i as ElemType,
+                    data: [i as ElemType, (i * 2) as ElemType],
                 },
                 TestState {
-                    data: -i as ElemType,
+                    data: [-i as ElemType, (i * 3) as ElemType],
                 },
                 TestAction { data: i },
                 0.1,
@@ -210,5 +200,33 @@ mod tests {
         }
         let sample = memory.sample::<5>();
         assert_eq!(sample.len(), 5);
+
+        let state_batch = sample.state_batch();
+        assert_eq!(state_batch.shape(), Shape::new([5, 2]));
+        let state_sample = state_batch
+            .select(0, Tensor::from_ints([0, 1]))
+            .to_data()
+            .value;
+        assert_eq!(state_sample[0] * 2.0, state_sample[1]);
+
+        let next_state_batch = sample.next_state_batch();
+        assert_eq!(next_state_batch.shape(), Shape::new([5, 2]));
+        let next_state_sample = next_state_batch
+            .select(0, Tensor::from_ints([0, 1]))
+            .to_data()
+            .value;
+        assert_eq!(next_state_sample[0] * -3.0, next_state_sample[1]);
+
+        let action_batch = sample.action_batch();
+        assert_eq!(action_batch.shape(), Shape::new([5, 1]));
+        assert_eq!(action_batch.to_data().value[0], state_sample[0] as i64);
+
+        let reward_batch = sample.reward_batch();
+        assert_eq!(reward_batch.shape(), Shape::new([5, 1]));
+        assert_eq!(reward_batch.to_data().value[0], 0.1);
+
+        let not_done_batch = sample.not_done_batch();
+        assert_eq!(not_done_batch.shape(), Shape::new([5, 1]));
+        assert_eq!(not_done_batch.to_data().value[0], 1.0);
     }
 }

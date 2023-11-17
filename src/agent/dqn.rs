@@ -1,8 +1,7 @@
 use crate::base::{Action, Memory, Model, State};
 use crate::components::agent::Agent;
 use crate::components::env::Environment;
-use crate::utils::SmoothL1Loss;
-use burn::nn::loss::Reduction;
+use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::{GradientsParams, Optimizer};
 use burn::tensor::backend::ADBackend;
 use burn::tensor::{ElementConversion, Tensor};
@@ -31,13 +30,13 @@ impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Dqn<E, B, M, E
     }
 
     fn convert_state_to_tensor(state: <Self as Agent>::StateType) -> Tensor<B, 2> {
-        state.data().unsqueeze()
+        state.to_tensor().unsqueeze()
     }
 
     fn convert_tenor_to_action(output: Tensor<B, 2>) -> <Self as Agent>::ActionType {
         unsafe {
             output
-                .argmax(0)
+                .argmax(1)
                 .to_data()
                 .value
                 .get_unchecked(0)
@@ -73,17 +72,16 @@ impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Agent for Dqn<
 }
 
 impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
-    pub fn train<const SAMPLE_SIZE: usize, const SIZE: usize, T>(
+    pub fn train<const BATCH_SIZE: usize>(
         &mut self,
         mut policy_net: M,
-        memory: &Memory<E, B, SIZE>,
-        optimizer: &mut (impl Optimizer<M, B, Record = T> + Sized),
+        sample: Memory<E, B, BATCH_SIZE>,
+        optimizer: &mut (impl Optimizer<M, B> + Sized),
     ) -> M {
-        let sample = memory.sample::<SIZE>();
-
         let state_action_values = policy_net
             .forward(sample.state_batch())
             .gather(1, sample.action_batch());
+
         let next_state_values = self
             .target_net
             .forward(sample.next_state_batch())
@@ -96,7 +94,7 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
         let expected_state_action_values =
             (next_state_values * not_done_batch).mul_scalar(GAMMA) + reward_batch;
 
-        let loss = SmoothL1Loss::default().forward(
+        let loss = MSELoss::default().forward(
             state_action_values,
             expected_state_action_values,
             Reduction::Mean,
