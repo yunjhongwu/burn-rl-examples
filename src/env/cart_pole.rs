@@ -30,7 +30,7 @@ impl From<CartPoleObservation> for CartPoleState {
 
 impl State for CartPoleState {
     type Data = [ElemType; 4];
-    fn data<B: Backend>(&self) -> Tensor<B, 1> {
+    fn to_tensor<B: Backend>(&self) -> Tensor<B, 1> {
         Tensor::<B, 1>::from_floats(self.data)
     }
 
@@ -39,7 +39,6 @@ impl State for CartPoleState {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug, Copy, Clone)]
 pub enum CartPoleAction {
     Left,
@@ -104,7 +103,6 @@ pub struct CartPole {
 }
 
 impl CartPole {
-    #[allow(unused)]
     pub fn new(visualized: bool) -> Self {
         Self {
             gym_env: CartPoleEnv::new(if visualized {

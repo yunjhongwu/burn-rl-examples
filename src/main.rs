@@ -2,7 +2,6 @@ mod agent;
 mod base;
 mod components;
 mod env;
-mod utils;
 
 use crate::agent::Dqn;
 use crate::base::{Action, ElemType, Memory, Model, State};
@@ -13,7 +12,7 @@ use burn::backend::ndarray::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{Module, Param};
 use burn::nn::{Linear, LinearConfig};
-use burn::optim::AdamConfig;
+use burn::optim::AdamWConfig;
 use burn::tensor::activation::relu;
 use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
@@ -72,16 +71,15 @@ impl<B: ADBackend> Model<B> for DQNModel<B> {
     }
 }
 
-const MEMORY_SIZE: usize = 2048;
+const MEMORY_SIZE: usize = 4096;
 const BATCH_SIZE: usize = 128;
 
 pub fn main() {
-    let num_episodes = 512_usize;
+    let num_episodes = 128_usize;
     let eps_decay = 1000.0;
     let eps_start = 0.9;
     let eps_end = 0.05;
     let dense_size = 96_usize;
-    let reward_ewma_decay = 0.95;
 
     let mut env = MyEnv::new(false);
     let model = DQNModel::<DQNBackend>::new(
@@ -95,11 +93,10 @@ pub fn main() {
     let mut step = 0_usize;
 
     let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
-    let mut optimizer = AdamConfig::new()
+    let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
         .init::<DQNBackend, DQNModel<DQNBackend>>();
     let mut policy_net = agent.model().clone();
-    let mut ewma_reward = 0.0;
 
     for episode in 0..num_episodes {
         let mut episode_done = false;
@@ -119,21 +116,19 @@ pub fn main() {
                 snapshot.done(),
             );
             if BATCH_SIZE < memory.len() {
-                policy_net =
-                    agent.train::<BATCH_SIZE, MEMORY_SIZE, _>(policy_net, &memory, &mut optimizer);
+                policy_net = agent.train(policy_net, memory.sample::<BATCH_SIZE>(), &mut optimizer);
             }
 
             step += 1;
             episode_duration += 1;
 
-            if snapshot.done() {
+            if snapshot.done() || episode_duration > 500 {
                 env.reset();
                 episode_done = true;
-                ewma_reward = (1.0 - reward_ewma_decay) * episode_duration as f64
-                    + reward_ewma_decay * ewma_reward;
+
                 println!(
-                    "Episode {}: step = {}, EWMA episode duration = {:.4}, epsilon threshold = {:.4}",
-                    episode, step, ewma_reward, eps_threshold
+                    "{{\"episode\": {}, \"duration\": {:.4}}}",
+                    episode, episode_duration
                 );
             } else {
                 state = *snapshot.state();
