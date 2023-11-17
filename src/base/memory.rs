@@ -6,35 +6,51 @@ use rand::prelude::SliceRandom;
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use std::marker::PhantomData;
 
-#[allow(unused)]
 pub struct Memory<E: Environment, B: Backend, const CAP: usize> {
-    state: ConstGenericRingBuffer<E::StateType, CAP>,
-    next_state: ConstGenericRingBuffer<E::StateType, CAP>,
-    action: ConstGenericRingBuffer<E::ActionType, CAP>,
+    state: ConstGenericRingBuffer<Tensor<B, 1>, CAP>,
+    next_state: ConstGenericRingBuffer<Tensor<B, 1>, CAP>,
+    action: ConstGenericRingBuffer<u32, CAP>,
     reward: ConstGenericRingBuffer<ElemType, CAP>,
     done: ConstGenericRingBuffer<bool, CAP>,
+    environment: PhantomData<E>,
     backend: PhantomData<B>,
 }
 
-impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
-    #[allow(unused)]
-    pub fn new() -> Self {
+impl<E: Environment, B: Backend, const CAP: usize> Default for Memory<E, B, CAP> {
+    fn default() -> Self {
         Self {
             state: ConstGenericRingBuffer::new(),
             next_state: ConstGenericRingBuffer::new(),
             action: ConstGenericRingBuffer::new(),
             reward: ConstGenericRingBuffer::new(),
             done: ConstGenericRingBuffer::new(),
+            environment: PhantomData,
             backend: PhantomData,
         }
     }
+}
 
-    #[allow(unused)]
+impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
     pub fn push(
         &mut self,
         state: E::StateType,
         next_state: E::StateType,
         action: E::ActionType,
+        reward: ElemType,
+        done: bool,
+    ) {
+        self.state.push(state.data());
+        self.next_state.push(next_state.data());
+        self.action.push(action.into());
+        self.reward.push(reward);
+        self.done.push(done);
+    }
+
+    pub fn push_tensor(
+        &mut self,
+        state: Tensor<B, 1>,
+        next_state: Tensor<B, 1>,
+        action: u32,
         reward: ElemType,
         done: bool,
     ) {
@@ -45,16 +61,15 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
         self.done.push(done);
     }
 
-    #[allow(unused)]
     pub fn sample<const SIZE: usize>(&self) -> Memory<E, B, SIZE> {
         let mut rng = rand::thread_rng();
         let mut indices: Vec<usize> = (0..self.len()).collect();
         indices.shuffle(&mut rng);
-        let mut memory = Memory::<E, B, SIZE>::new();
+        let mut memory = Memory::<E, B, SIZE>::default();
         for index in indices.iter().take(SIZE).copied() {
-            memory.push(
-                self.state[index],
-                self.next_state[index],
+            memory.push_tensor(
+                self.state[index].clone(),
+                self.next_state[index].clone(),
                 self.action[index],
                 self.reward[index],
                 self.done[index],
@@ -71,14 +86,14 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
             .reshape([data.len() as i32, -1])
     }
     pub fn next_state_batch(&self) -> Tensor<B, 2> {
-        Self::stack(&self.state, |state| state.data())
+        Self::stack(&self.state, |state| state.clone())
     }
     pub fn state_batch(&self) -> Tensor<B, 2> {
-        Self::stack(&self.state, |state| state.data())
+        Self::stack(&self.state, |state| state.clone())
     }
     pub fn action_batch(&self) -> Tensor<B, 2, Int> {
         Self::stack(&self.action, |action| {
-            Tensor::<B, 1, Int>::from_ints([(*action).into() as i32])
+            Tensor::<B, 1, Int>::from_ints([*action as i32])
         })
     }
     pub fn reward_batch(&self) -> Tensor<B, 2> {
@@ -179,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_memory() {
-        let mut memory = Memory::<TestEnv, TestBackend, 16>::new();
+        let mut memory = Memory::<TestEnv, TestBackend, 16>::default();
         for i in 0..20 {
             memory.push(
                 TestState {
