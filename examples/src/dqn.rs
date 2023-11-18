@@ -68,7 +68,7 @@ impl<B: Backend> Model<B> for DQNModel<B> {
 const MEMORY_SIZE: usize = 4096;
 const BATCH_SIZE: usize = 128;
 
-fn demo_model(agent: impl Agent<CartPole>) {
+fn demo_model(agent: impl Agent<MyEnv>) {
     let mut env = MyEnv::new(true);
     let mut state = env.state();
     let mut done = false;
@@ -108,7 +108,8 @@ pub fn run() {
 
     for episode in 0..num_episodes {
         let mut episode_done = false;
-        let mut episode_duration = 0;
+        let mut episode_reward = 0.0;
+        let mut episode_duration = 0_usize;
         let mut state = env.state();
 
         while !episode_done {
@@ -116,6 +117,8 @@ pub fn run() {
                 eps_end + (eps_start - eps_end) * f64::exp(-(step as f64) / eps_decay);
             let action = MyAgent::react_with_exploration(&policy_net, state, eps_threshold);
             let snapshot = env.step(action);
+
+            episode_reward += snapshot.reward();
 
             memory.push(
                 state,
@@ -132,13 +135,13 @@ pub fn run() {
             step += 1;
             episode_duration += 1;
 
-            if snapshot.done() || episode_duration >= 500 {
+            if snapshot.done() || episode_duration >= MyEnv::MAX_STEPS {
                 env.reset();
                 episode_done = true;
 
                 println!(
-                    "{{\"episode\": {}, \"duration\": {:.4}}}",
-                    episode, episode_duration
+                    "{{\"episode\": {}, \"reward\": {:.4}}}, \"duration\": {}",
+                    episode, episode_reward, episode_duration
                 );
             } else {
                 state = *snapshot.state();
