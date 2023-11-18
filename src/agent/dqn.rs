@@ -1,9 +1,10 @@
 use crate::base::{Action, Memory, Model, State};
 use crate::components::agent::Agent;
 use crate::components::env::Environment;
+use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::{GradientsParams, Optimizer};
-use burn::tensor::backend::ADBackend;
+use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::{ElementConversion, Tensor};
 use rand::random;
 use std::marker::PhantomData;
@@ -12,28 +13,28 @@ const GAMMA: f64 = 0.999;
 const TAU: f64 = 0.005;
 const LR: f64 = 0.001;
 
-pub struct Dqn<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> {
+pub struct Dqn<E: Environment, B: Backend, M: Model<B>> {
     target_net: M,
     state: PhantomData<E::StateType>,
     action: PhantomData<E::ActionType>,
     backend: PhantomData<B>,
 }
 
-impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Dqn<E, B, M, EVAL> {
-    pub fn new(model: M) -> Self {
-        Self {
-            target_net: model,
-            state: PhantomData,
-            action: PhantomData,
-            backend: PhantomData,
-        }
+impl<E: Environment, B: Backend, M: Model<B>> Agent<E> for Dqn<E, B, M> {
+    fn react(&self, state: &E::StateType) -> E::ActionType {
+        Self::convert_tenor_to_action(
+            self.target_net
+                .forward(Self::convert_state_to_tensor(*state)),
+        )
     }
+}
 
-    fn convert_state_to_tensor(state: <Self as Agent>::StateType) -> Tensor<B, 2> {
+impl<E: Environment, B: Backend, M: Model<B>> Dqn<E, B, M> {
+    fn convert_state_to_tensor(state: E::StateType) -> Tensor<B, 2> {
         state.to_tensor().unsqueeze()
     }
 
-    fn convert_tenor_to_action(output: Tensor<B, 2>) -> <Self as Agent>::ActionType {
+    fn convert_tenor_to_action(output: Tensor<B, 2>) -> E::ActionType {
         unsafe {
             output
                 .argmax(1)
@@ -45,12 +46,27 @@ impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Dqn<E, B, M, E
         }
     }
 
+    pub fn model(&self) -> &M {
+        &self.target_net
+    }
+}
+
+impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M> {
+    pub fn new(model: M) -> Self {
+        Self {
+            target_net: model,
+            state: PhantomData,
+            action: PhantomData,
+            backend: PhantomData,
+        }
+    }
+
     pub fn react_with_exploration(
         &self,
         policy_net: &M,
-        state: <Self as Agent>::StateType,
+        state: E::StateType,
         eps_threshold: f64,
-    ) -> <Self as Agent>::ActionType {
+    ) -> E::ActionType {
         if random::<f64>() > eps_threshold {
             Self::convert_tenor_to_action(policy_net.forward(Self::convert_state_to_tensor(state)))
         } else {
@@ -59,19 +75,7 @@ impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Dqn<E, B, M, E
     }
 }
 
-impl<E: Environment, B: ADBackend, M: Model<B>, const EVAL: bool> Agent for Dqn<E, B, M, EVAL> {
-    type StateType = E::StateType;
-    type ActionType = E::ActionType;
-
-    fn react(&self, state: &Self::StateType) -> Self::ActionType {
-        Self::convert_tenor_to_action(
-            self.target_net
-                .forward(Self::convert_state_to_tensor(*state)),
-        )
-    }
-}
-
-impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
+impl<E: Environment, B: ADBackend, M: Model<B> + ADModule<B>> Dqn<E, B, M> {
     pub fn train<const BATCH_SIZE: usize>(
         &mut self,
         mut policy_net: M,
@@ -104,17 +108,20 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M, false> {
         let gradient_params = GradientsParams::from_grads(gradients, &policy_net);
 
         policy_net = optimizer.step(LR, policy_net, gradient_params);
-        self.target_net.soft_update(&policy_net, TAU);
+        <M as Model<B>>::soft_update(&mut self.target_net, &policy_net, TAU);
 
         policy_net
     }
+}
 
-    pub fn model(&self) -> &M {
-        &self.target_net
-    }
-    pub fn to_eval(&self) -> Dqn<E, B, M, true> {
-        Dqn::<E, B, M, true> {
-            target_net: self.target_net.clone(),
+impl<E: Environment, B: ADBackend, M: Model<B> + ADModule<B>> Dqn<E, B, M> {
+    pub fn valid(&self) -> Dqn<E, B::InnerBackend, M::InnerModule>
+    where
+        <M as ADModule<B>>::InnerModule: Model<<B as ADBackend>::InnerBackend>,
+    {
+        let target_net = self.target_net.clone().valid();
+        Dqn::<E, B::InnerBackend, M::InnerModule> {
+            target_net,
             state: PhantomData,
             action: PhantomData,
             backend: PhantomData,
