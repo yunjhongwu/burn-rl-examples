@@ -1,4 +1,6 @@
 mod action;
+pub mod agent;
+pub mod environment;
 mod memory;
 mod model;
 mod snapshot;

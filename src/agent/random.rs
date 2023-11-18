@@ -1,6 +1,6 @@
+use crate::base::agent::Agent;
+use crate::base::environment::Environment;
 use crate::base::Action;
-use crate::components::agent::Agent;
-use crate::components::env::Environment;
 
 #[derive(Default)]
 pub struct Random {}

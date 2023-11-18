@@ -1,13 +1,12 @@
 mod agent;
 mod base;
-mod components;
-mod env;
+mod environment;
 
 use crate::agent::Dqn;
 use crate::base::{Action, ElemType, Memory, Model, State};
-use crate::components::agent::Agent;
-use crate::components::env::Environment;
-use crate::env::cart_pole::CartPole;
+use crate::environment::cart_pole::CartPole;
+use base::agent::Agent;
+use base::environment::Environment;
 use burn::backend::ndarray::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{Module, Param};
@@ -20,6 +19,7 @@ use burn_autodiff::ADBackendDecorator;
 
 type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
 type MyEnv = CartPole;
+type MyAgent = Dqn<MyEnv, DQNBackend, DQNModel<DQNBackend>>;
 
 #[derive(Module, Debug)]
 pub struct DQNModel<B: Backend> {
@@ -88,13 +88,13 @@ pub fn main() {
         dense_size,
         <<MyEnv as Environment>::ActionType as Action>::size(),
     );
-    let mut agent = Dqn::<MyEnv, DQNBackend, DQNModel<_>>::new(model);
+    let mut agent = MyAgent::new(model);
 
     let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
 
     let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
-        .init::<DQNBackend, DQNModel<DQNBackend>>();
+        .init();
 
     let mut policy_net = agent.model().clone();
 
@@ -108,7 +108,7 @@ pub fn main() {
         while !episode_done {
             let eps_threshold =
                 eps_end + (eps_start - eps_end) * f64::exp(-(step as f64) / eps_decay);
-            let action = agent.react_with_exploration(&policy_net, state, eps_threshold);
+            let action = MyAgent::react_with_exploration(&policy_net, state, eps_threshold);
             let snapshot = env.step(action);
 
             memory.push(

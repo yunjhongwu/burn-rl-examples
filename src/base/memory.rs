@@ -1,5 +1,5 @@
+use crate::base::environment::Environment;
 use crate::base::{ElemType, State};
-use crate::components::env::Environment;
 use burn::tensor::backend::Backend;
 use burn::tensor::{BasicOps, Int, Tensor, TensorKind};
 use rand::prelude::SliceRandom;
@@ -112,13 +112,13 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
 
 #[cfg(test)]
 mod tests {
+    use crate::base::environment::Environment;
     use crate::base::{Action, ElemType, Memory, Snapshot, State};
-    use crate::components::env::Environment;
     use burn::backend::NdArrayBackend;
     use burn::tensor::backend::Backend;
     use burn::tensor::{Shape, Tensor};
 
-    #[derive(Debug, Copy, Clone, Default)]
+    #[derive(Debug, Copy, Clone)]
     struct TestAction {
         data: i32,
     }
@@ -145,7 +145,7 @@ mod tests {
         }
     }
 
-    #[derive(Debug, Copy, Clone, Default)]
+    #[derive(Debug, Copy, Clone)]
     struct TestState {
         data: [ElemType; 2],
     }
