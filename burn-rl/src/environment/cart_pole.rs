@@ -102,7 +102,7 @@ impl Environment for CartPole {
         Snapshot::new(self.gym_env.state.into(), 1.0, false)
     }
 
-    fn step(&mut self, action: CartPoleAction) -> Snapshot<CartPoleState> {
+    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self::StateType> {
         let action_reward = self.gym_env.step(action as usize);
         Snapshot::new(
             action_reward.observation.into(),
