@@ -108,6 +108,10 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
     pub fn len(&self) -> usize {
         self.state.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.state.is_empty()
+    }
 }
 
 #[cfg(test)]

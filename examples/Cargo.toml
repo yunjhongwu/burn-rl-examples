@@ -1,0 +1,15 @@
+[package]
+name = "burn-rl-examples"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+burn = { version = "0.10.0", features = ["ndarray", "autodiff"] }
+burn-autodiff = "0.10.0"
+serde = { workspace = true }
+
+burn-rl = { path = "../burn-rl" }
+
+[features]
+default = ["burn/ndarray"]

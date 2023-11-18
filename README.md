@@ -1,6 +1,6 @@
 # Experimenting Reinforcement Learning with Rust [Burn](https://github.com/Tracel-AI/burn)
 
-## CartPole
+## CartPole with DQN
 
 ![cartpole-training](./assets/cartpole.svg)
 
