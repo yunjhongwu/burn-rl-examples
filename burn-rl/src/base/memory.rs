@@ -85,17 +85,21 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
         Tensor::cat(data.iter().map(accessor).collect::<Vec<_>>(), 0)
             .reshape([data.len() as i32, -1])
     }
+
     pub fn next_state_batch(&self) -> Tensor<B, 2> {
         Self::stack(&self.next_state, |state| state.clone())
     }
+
     pub fn state_batch(&self) -> Tensor<B, 2> {
         Self::stack(&self.state, |state| state.clone())
     }
+
     pub fn action_batch(&self) -> Tensor<B, 2, Int> {
         Self::stack(&self.action, |action| {
             Tensor::<B, 1, Int>::from_ints([*action as i32])
         })
     }
+
     pub fn reward_batch(&self) -> Tensor<B, 2> {
         Self::stack(&self.reward, |reward| Tensor::from_floats([*reward]))
     }

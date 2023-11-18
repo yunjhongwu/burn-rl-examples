@@ -104,7 +104,7 @@ impl Environment for MountainCar {
         Snapshot::new(self.gym_env.state.into(), 0.0, false)
     }
 
-    fn step(&mut self, action: MountainCarAction) -> Snapshot<MountainCarState> {
+    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self::StateType> {
         let action_reward = self.gym_env.step(action as usize);
         Snapshot::new(
             action_reward.observation.into(),
