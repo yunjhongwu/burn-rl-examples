@@ -1,6 +1,6 @@
+use crate::base::agent::Agent;
+use crate::base::environment::Environment;
 use crate::base::{Action, Memory, Model, State};
-use crate::components::agent::Agent;
-use crate::components::env::Environment;
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::{GradientsParams, Optimizer};
@@ -62,7 +62,6 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M> {
     }
 
     pub fn react_with_exploration(
-        &self,
         policy_net: &M,
         state: E::StateType,
         eps_threshold: f64,

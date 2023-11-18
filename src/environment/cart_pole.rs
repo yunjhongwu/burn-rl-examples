@@ -1,6 +1,6 @@
+use crate::base::environment::Environment;
 use crate::base::{Action, State};
 use crate::base::{ElemType, Snapshot};
-use crate::components::env::Environment;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use gym_rs::core::Env;
@@ -9,7 +9,7 @@ use gym_rs::utils::renderer::RenderMode;
 use rand::random;
 use std::fmt::Debug;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone)]
 pub struct CartPoleState {
     data: [ElemType; 4],
 }
@@ -43,22 +43,6 @@ impl State for CartPoleState {
 pub enum CartPoleAction {
     Left,
     Right,
-}
-
-impl From<usize> for CartPoleAction {
-    fn from(action: usize) -> Self {
-        match action {
-            0 => Self::Left,
-            1 => Self::Right,
-            _ => panic!("Invalid action"),
-        }
-    }
-}
-
-impl Default for CartPoleAction {
-    fn default() -> Self {
-        Self::Left
-    }
 }
 
 impl From<u32> for CartPoleAction {
@@ -128,11 +112,7 @@ impl Environment for CartPole {
     }
 
     fn step(&mut self, action: CartPoleAction) -> Snapshot<CartPoleState> {
-        let action = match action {
-            CartPoleAction::Left => 0,
-            CartPoleAction::Right => 1,
-        };
-        let action_reward = self.gym_env.step(action);
+        let action_reward = self.gym_env.step(action as usize);
         Snapshot::new(
             action_reward.observation.into(),
             *action_reward.reward as ElemType,
