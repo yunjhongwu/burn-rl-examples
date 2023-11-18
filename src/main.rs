@@ -14,7 +14,7 @@ use burn::module::{Module, Param};
 use burn::nn::{Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::relu;
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
 
@@ -28,7 +28,7 @@ pub struct DQNModel<B: Backend> {
     linear_2: Linear<B>,
 }
 
-impl<B: ADBackend> DQNModel<B> {
+impl<B: Backend> DQNModel<B> {
     pub fn new(input_size: usize, dense_size: usize, output_size: usize) -> Self {
         Self {
             linear_0: LinearConfig::new(input_size, dense_size).init(),
@@ -42,21 +42,21 @@ impl<B: ADBackend> DQNModel<B> {
         that: &Param<Tensor<B, N>>,
         tau: f64,
     ) -> Param<Tensor<B, N>> {
-        let other_weight = that.val();
-        let self_weight = this.val();
-        let new_weight = self_weight * (1.0 - tau) + other_weight * tau;
+        let that_weight = that.val();
+        let this_weight = this.val();
+        let new_this_weight = this_weight * (1.0 - tau) + that_weight * tau;
 
-        Param::from(new_weight.no_grad())
+        Param::from(new_this_weight.no_grad())
     }
     fn soft_update_linear(this: &mut Linear<B>, that: &Linear<B>, tau: f64) {
         this.weight = Self::soft_update_tensor(&this.weight, &that.weight, tau);
-        if let (Some(self_bias), Some(other_bias)) = (&mut this.bias, &that.bias) {
-            this.bias = Some(Self::soft_update_tensor(self_bias, other_bias, tau));
+        if let (Some(this_bias), Some(that_bias)) = (&mut this.bias, &that.bias) {
+            this.bias = Some(Self::soft_update_tensor(this_bias, that_bias, tau));
         }
     }
 }
 
-impl<B: ADBackend> Model<B> for DQNModel<B> {
+impl<B: Backend> Model<B> for DQNModel<B> {
     fn forward<const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D> {
         let layer_0_output = relu(self.linear_0.forward(input));
         let layer_1_output = relu(self.linear_1.forward(layer_0_output));
@@ -64,10 +64,10 @@ impl<B: ADBackend> Model<B> for DQNModel<B> {
         relu(self.linear_2.forward(layer_1_output))
     }
 
-    fn soft_update(&mut self, other: &Self, tau: f64) {
-        Self::soft_update_linear(&mut self.linear_0, &other.linear_0, tau);
-        Self::soft_update_linear(&mut self.linear_1, &other.linear_1, tau);
-        Self::soft_update_linear(&mut self.linear_2, &other.linear_2, tau);
+    fn soft_update(this: &mut Self, that: &Self, tau: f64) {
+        Self::soft_update_linear(&mut this.linear_0, &that.linear_0, tau);
+        Self::soft_update_linear(&mut this.linear_1, &that.linear_1, tau);
+        Self::soft_update_linear(&mut this.linear_2, &that.linear_2, tau);
     }
 }
 
@@ -88,7 +88,7 @@ pub fn main() {
         dense_size,
         <<MyEnv as Environment>::ActionType as Action>::size(),
     );
-    let mut agent = Dqn::<MyEnv, DQNBackend, DQNModel<DQNBackend>, false>::new(model);
+    let mut agent = Dqn::<MyEnv, DQNBackend, DQNModel<_>>::new(model);
 
     let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
 
@@ -140,10 +140,11 @@ pub fn main() {
         }
     }
 
-    demo_model(agent.to_eval());
+    let valid_agent = agent.valid();
+    demo_model(valid_agent);
 }
 
-fn demo_model(agent: Dqn<MyEnv, DQNBackend, DQNModel<DQNBackend>, true>) {
+fn demo_model(agent: impl Agent<CartPole>) {
     let mut env = MyEnv::new(true);
     let mut state = env.state();
     let mut done = false;

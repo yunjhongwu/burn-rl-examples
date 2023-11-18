@@ -1,9 +1,8 @@
-use burn::module::ADModule;
-use burn::tensor::backend::ADBackend;
+use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 
-pub trait Model<B: ADBackend>: Clone + ADModule<B> {
+pub trait Model<B: Backend>: Clone {
     fn forward<const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D>;
 
-    fn soft_update(&mut self, other: &Self, tau: f64);
+    fn soft_update(this: &mut Self, that: &Self, tau: f64);
 }

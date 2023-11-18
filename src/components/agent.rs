@@ -1,8 +1,5 @@
-use crate::base::{Action, State};
+use crate::components::env::Environment;
 
-pub trait Agent {
-    type StateType: State;
-    type ActionType: Action;
-
-    fn react(&self, state: &Self::StateType) -> Self::ActionType;
+pub trait Agent<E: Environment> {
+    fn react(&self, state: &E::StateType) -> E::ActionType;
 }
