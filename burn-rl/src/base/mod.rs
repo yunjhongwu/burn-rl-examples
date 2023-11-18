@@ -7,6 +7,8 @@ mod snapshot;
 mod state;
 
 pub use action::Action;
+pub use agent::Agent;
+pub use environment::Environment;
 pub use memory::Memory;
 pub use model::Model;
 pub use snapshot::Snapshot;

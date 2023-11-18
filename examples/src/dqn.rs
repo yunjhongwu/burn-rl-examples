@@ -1,12 +1,3 @@
-mod agent;
-mod base;
-mod environment;
-
-use crate::agent::Dqn;
-use crate::base::{Action, ElemType, Memory, Model, State};
-use crate::environment::cart_pole::CartPole;
-use base::agent::Agent;
-use base::environment::Environment;
 use burn::backend::ndarray::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{Module, Param};
@@ -16,6 +7,9 @@ use burn::tensor::activation::relu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
+use burn_rl::agent::Dqn;
+use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
+use burn_rl::environment::CartPole;
 
 type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
 type MyEnv = CartPole;
@@ -74,7 +68,19 @@ impl<B: Backend> Model<B> for DQNModel<B> {
 const MEMORY_SIZE: usize = 4096;
 const BATCH_SIZE: usize = 128;
 
-pub fn main() {
+fn demo_model(agent: impl Agent<CartPole>) {
+    let mut env = MyEnv::new(true);
+    let mut state = env.state();
+    let mut done = false;
+    while !done {
+        let action = agent.react(&state);
+        let snapshot = env.step(action);
+        state = *snapshot.state();
+        done = snapshot.done();
+    }
+}
+
+pub fn run() {
     let num_episodes = 256_usize;
     let eps_decay = 1000.0;
     let eps_start = 0.9;
@@ -142,16 +148,4 @@ pub fn main() {
 
     let valid_agent = agent.valid();
     demo_model(valid_agent);
-}
-
-fn demo_model(agent: impl Agent<CartPole>) {
-    let mut env = MyEnv::new(true);
-    let mut state = env.state();
-    let mut done = false;
-    while !done {
-        let action = agent.react(&state);
-        let snapshot = env.step(action);
-        state = *snapshot.state();
-        done = snapshot.done();
-    }
 }

@@ -1,20 +1,9 @@
-[package]
-name = "burn-rl-examples"
-version = "0.1.0"
-edition = "2021"
-publish = false
+[workspace]
+resolver = "2"
 
-[dependencies]
-rand = "0.8.5"
-burn = "0.10.0"
-burn-autodiff = "0.10.0"
-burn-ndarray = "0.10.0"
-ndarray = "0.15.6"
-ndarray-linalg = "0.16.0"
-ordered-float = "4.1.1"
-gym-rs = "0.3.0"
+members = [
+    "burn-rl", "examples"
+]
+
+[workspace.dependencies]
 serde = "1.0.192"
-ringbuffer = "0.15.0"
-
-[features]
-default = ["burn/ndarray"]
