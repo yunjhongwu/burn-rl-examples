@@ -75,33 +75,36 @@ const MEMORY_SIZE: usize = 4096;
 const BATCH_SIZE: usize = 128;
 
 pub fn main() {
-    let num_episodes = 128_usize;
+    let num_episodes = 256_usize;
     let eps_decay = 1000.0;
     let eps_start = 0.9;
     let eps_end = 0.05;
-    let dense_size = 96_usize;
+    let dense_size = 128_usize;
 
     let mut env = MyEnv::new(false);
+
     let model = DQNModel::<DQNBackend>::new(
         <<MyEnv as Environment>::StateType as State>::size(),
         dense_size,
         <<MyEnv as Environment>::ActionType as Action>::size(),
     );
-
     let mut agent = Dqn::<MyEnv, DQNBackend, DQNModel<DQNBackend>, false>::new(model);
 
-    let mut step = 0_usize;
-
     let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
+
     let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
         .init::<DQNBackend, DQNModel<DQNBackend>>();
+
     let mut policy_net = agent.model().clone();
+
+    let mut step = 0_usize;
 
     for episode in 0..num_episodes {
         let mut episode_done = false;
         let mut episode_duration = 0;
         let mut state = env.state();
+
         while !episode_done {
             let eps_threshold =
                 eps_end + (eps_start - eps_end) * f64::exp(-(step as f64) / eps_decay);
@@ -115,6 +118,7 @@ pub fn main() {
                 snapshot.reward(),
                 snapshot.done(),
             );
+
             if BATCH_SIZE < memory.len() {
                 policy_net = agent.train(policy_net, memory.sample::<BATCH_SIZE>(), &mut optimizer);
             }
@@ -122,7 +126,7 @@ pub fn main() {
             step += 1;
             episode_duration += 1;
 
-            if snapshot.done() || episode_duration > 500 {
+            if snapshot.done() || episode_duration >= 500 {
                 env.reset();
                 episode_done = true;
 
