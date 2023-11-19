@@ -51,7 +51,7 @@ impl<E: Environment, B: Backend, M: Model<B>> Dqn<E, B, M> {
     }
 }
 
-impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M> {
+impl<E: Environment, B: Backend, M: Model<B>> Dqn<E, B, M> {
     pub fn new(model: M) -> Self {
         Self {
             target_net: model,
@@ -60,7 +60,8 @@ impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M> {
             backend: PhantomData,
         }
     }
-
+}
+impl<E: Environment, B: ADBackend, M: Model<B>> Dqn<E, B, M> {
     pub fn react_with_exploration(
         policy_net: &M,
         state: E::StateType,
@@ -111,19 +112,11 @@ impl<E: Environment, B: ADBackend, M: Model<B> + ADModule<B>> Dqn<E, B, M> {
 
         policy_net
     }
-}
 
-impl<E: Environment, B: ADBackend, M: Model<B> + ADModule<B>> Dqn<E, B, M> {
     pub fn valid(&self) -> Dqn<E, B::InnerBackend, M::InnerModule>
     where
         <M as ADModule<B>>::InnerModule: Model<<B as ADBackend>::InnerBackend>,
     {
-        let target_net = self.target_net.clone().valid();
-        Dqn::<E, B::InnerBackend, M::InnerModule> {
-            target_net,
-            state: PhantomData,
-            action: PhantomData,
-            backend: PhantomData,
-        }
+        Dqn::<E, B::InnerBackend, M::InnerModule>::new(self.target_net.clone().valid())
     }
 }
