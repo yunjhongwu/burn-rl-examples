@@ -1,5 +1,5 @@
 mod dqn;
 mod random;
 
-pub use dqn::Dqn;
+pub use dqn::{DQNModel, DQN};
 pub use random::Random;
