@@ -140,7 +140,7 @@ pub fn run() {
                 episode_done = true;
 
                 println!(
-                    "{{\"episode\": {}, \"reward\": {:.4}}}, \"duration\": {}",
+                    "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
                     episode, episode_reward, episode_duration
                 );
             } else {
