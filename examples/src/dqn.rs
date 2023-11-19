@@ -7,22 +7,23 @@ use burn::tensor::activation::relu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
-use burn_rl::agent::Dqn;
+use burn_rl::agent::DQNModel;
+use burn_rl::agent::DQN;
 use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 use burn_rl::environment::CartPole;
 
 type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
 type MyEnv = CartPole;
-type MyAgent = Dqn<MyEnv, DQNBackend, DQNModel<DQNBackend>>;
+type MyAgent = DQN<MyEnv, DQNBackend, Net<DQNBackend>>;
 
 #[derive(Module, Debug)]
-pub struct DQNModel<B: Backend> {
+pub struct Net<B: Backend> {
     linear_0: Linear<B>,
     linear_1: Linear<B>,
     linear_2: Linear<B>,
 }
 
-impl<B: Backend> DQNModel<B> {
+impl<B: Backend> Net<B> {
     pub fn new(input_size: usize, dense_size: usize, output_size: usize) -> Self {
         Self {
             linear_0: LinearConfig::new(input_size, dense_size).init(),
@@ -50,14 +51,16 @@ impl<B: Backend> DQNModel<B> {
     }
 }
 
-impl<B: Backend> Model<B> for DQNModel<B> {
-    fn forward<const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D> {
+impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Net<B> {
+    fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
         let layer_0_output = relu(self.linear_0.forward(input));
         let layer_1_output = relu(self.linear_1.forward(layer_0_output));
 
         relu(self.linear_2.forward(layer_1_output))
     }
+}
 
+impl<B: Backend> DQNModel<B> for Net<B> {
     fn soft_update(this: &mut Self, that: &Self, tau: f64) {
         Self::soft_update_linear(&mut this.linear_0, &that.linear_0, tau);
         Self::soft_update_linear(&mut this.linear_1, &that.linear_1, tau);
@@ -89,7 +92,7 @@ pub fn run() {
 
     let mut env = MyEnv::new(false);
 
-    let model = DQNModel::<DQNBackend>::new(
+    let model = Net::<DQNBackend>::new(
         <<MyEnv as Environment>::StateType as State>::size(),
         dense_size,
         <<MyEnv as Environment>::ActionType as Action>::size(),
