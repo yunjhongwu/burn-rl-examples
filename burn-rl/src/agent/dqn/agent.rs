@@ -1,22 +1,18 @@
+use crate::agent::{DQNMemory, DQNModel};
 use crate::base::agent::Agent;
 use crate::base::environment::Environment;
-use crate::base::{Action, Memory, Model};
+use crate::base::Action;
 use crate::utils::{convert_state_to_tensor, convert_tenor_to_action};
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::{GradientsParams, Optimizer};
 use burn::tensor::backend::{ADBackend, Backend};
-use burn::tensor::Tensor;
 use rand::random;
 use std::marker::PhantomData;
 
 const GAMMA: f64 = 0.999;
 const TAU: f64 = 0.005;
 const LR: f64 = 0.001;
-
-pub trait DQNModel<B: Backend>: Model<B, Tensor<B, 2>, Tensor<B, 2>> {
-    fn soft_update(this: &mut Self, that: &Self, tau: f64);
-}
 
 pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
     target_net: M,
@@ -29,7 +25,7 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
     fn react(&self, state: &E::StateType) -> E::ActionType {
         convert_tenor_to_action::<E::ActionType, B>(
             self.target_net
-                .forward(convert_state_to_tensor::<E::StateType, B>(*state)),
+                .forward(convert_state_to_tensor::<E::StateType, B>(*state).unsqueeze()),
         )
     }
 }
@@ -56,7 +52,7 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B>> DQN<E, B, M> {
     ) -> E::ActionType {
         if random::<f64>() > eps_threshold {
             convert_tenor_to_action::<E::ActionType, B>(
-                policy_net.forward(convert_state_to_tensor::<E::StateType, B>(state)),
+                policy_net.forward(convert_state_to_tensor::<E::StateType, B>(state).unsqueeze()),
             )
         } else {
             Action::random()
@@ -68,7 +64,7 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
     pub fn train<const BATCH_SIZE: usize>(
         &mut self,
         mut policy_net: M,
-        sample: Memory<E, B, BATCH_SIZE>,
+        sample: DQNMemory<E, B, BATCH_SIZE>,
         optimizer: &mut (impl Optimizer<M, B> + Sized),
     ) -> M {
         let state_action_values = policy_net

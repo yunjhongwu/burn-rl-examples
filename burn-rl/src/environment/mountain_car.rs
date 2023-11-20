@@ -93,6 +93,7 @@ impl MountainCar {
 impl Environment for MountainCar {
     type StateType = MountainCarState;
     type ActionType = MountainCarAction;
+    type RewardType = ElemType;
     const MAX_STEPS: usize = 200;
 
     fn state(&self) -> Self::StateType {
