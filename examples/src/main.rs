@@ -3,5 +3,6 @@ mod ppo;
 mod utils;
 
 fn main() {
-    ppo::run();
+    dqn::run(512);
+    // ppo::run(512);
 }

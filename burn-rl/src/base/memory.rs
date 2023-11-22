@@ -103,6 +103,14 @@ impl<E: Environment, B: Backend, const CAP: usize> Memory<E, B, CAP> {
     pub fn is_empty(&self) -> bool {
         self.state.is_empty()
     }
+
+    pub fn clear(&mut self) {
+        self.state.clear();
+        self.next_state.clear();
+        self.action.clear();
+        self.reward.clear();
+        self.done.clear();
+    }
 }
 
 #[cfg(test)]
