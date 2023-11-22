@@ -1,12 +1,15 @@
 use crate::base::{Action, ElemType, State};
 use burn::tensor::backend::Backend;
-use burn::tensor::{BasicOps, ElementConversion, Tensor, TensorKind};
+use burn::tensor::{ElementConversion, Int, Tensor};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::thread_rng;
-use ringbuffer::RingBuffer;
 
-pub(crate) fn convert_state_to_tensor<S: State, B: Backend>(state: S) -> Tensor<B, 1> {
+pub(crate) fn to_state_tensor<S: State, B: Backend>(state: S) -> Tensor<B, 1> {
     state.to_tensor()
+}
+
+pub(crate) fn ref_to_state_tensor<S: State, B: Backend>(state: &S) -> Tensor<B, 1> {
+    to_state_tensor(*state)
 }
 
 pub(crate) fn convert_tenor_to_action<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
@@ -21,6 +24,30 @@ pub(crate) fn convert_tenor_to_action<A: Action, B: Backend>(output: Tensor<B, 2
     }
 }
 
+pub(crate) fn to_action_tensor<A: Action, B: Backend>(action: A) -> Tensor<B, 1, Int> {
+    Tensor::<B, 1, Int>::from_ints([action.into() as i32])
+}
+
+pub(crate) fn ref_to_action_tensor<A: Action, B: Backend>(action: &A) -> Tensor<B, 1, Int> {
+    to_action_tensor(*action)
+}
+
+pub(crate) fn to_reward_tensor<B: Backend>(reward: impl Into<ElemType> + Clone) -> Tensor<B, 1> {
+    Tensor::from_floats([reward.into()])
+}
+
+pub(crate) fn ref_to_reward_tensor<B: Backend>(
+    reward: &(impl Into<ElemType> + Clone),
+) -> Tensor<B, 1> {
+    to_reward_tensor(reward.clone())
+}
+pub(crate) fn to_not_done_tensor<B: Backend>(done: bool) -> Tensor<B, 1> {
+    Tensor::from_floats([if done { 0.0 } else { 1.0 }])
+}
+
+pub(crate) fn ref_to_not_done_tensor<B: Backend>(done: &bool) -> Tensor<B, 1> {
+    to_not_done_tensor(*done)
+}
 #[allow(unused)]
 pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
     let dist = WeightedIndex::new(
@@ -35,16 +62,4 @@ pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B,
     .unwrap();
     let mut rng = thread_rng();
     (dist.sample(&mut rng) as u32).into()
-}
-
-pub(crate) fn stack<
-    B: Backend,
-    T,
-    K: TensorKind<B> + BasicOps<B>,
-    F: FnMut(&T) -> Tensor<B, 1, K>,
->(
-    data: &impl RingBuffer<T>,
-    accessor: F,
-) -> Tensor<B, 2, K> {
-    Tensor::cat(data.iter().map(accessor).collect::<Vec<_>>(), 0).reshape([data.len() as i32, -1])
 }

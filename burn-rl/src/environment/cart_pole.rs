@@ -92,7 +92,7 @@ impl Environment for CartPole {
     type StateType = CartPoleState;
     type ActionType = CartPoleAction;
     type RewardType = ElemType;
-    const MAX_STEPS: usize = 200;
+    const MAX_STEPS: usize = 500;
 
     fn state(&self) -> Self::StateType {
         self.gym_env.state.into()

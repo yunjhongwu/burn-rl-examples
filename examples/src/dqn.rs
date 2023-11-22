@@ -7,9 +7,9 @@ use burn::tensor::activation::relu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
+use burn_rl::agent::DQNModel;
 use burn_rl::agent::DQN;
-use burn_rl::agent::{DQNMemory, DQNModel, DQNTransition};
-use burn_rl::base::{sample_memory, Action, Agent, ElemType, Environment, Memory, Model, State};
+use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 use burn_rl::environment::CartPole;
 
 type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
@@ -99,7 +99,7 @@ pub fn run() {
     );
     let mut agent = MyAgent::new(model);
 
-    let mut memory = DQNMemory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
+    let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
 
     let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
@@ -123,17 +123,17 @@ pub fn run() {
 
             episode_reward += snapshot.reward();
 
-            memory.push(DQNTransition::new(
+            memory.push(
                 state,
                 *snapshot.state(),
                 action,
                 snapshot.reward(),
                 snapshot.done(),
-            ));
+            );
 
             if BATCH_SIZE < memory.len() {
-                let sample = sample_memory::<MEMORY_SIZE, BATCH_SIZE, _, _, _, _>(&memory);
-                policy_net = agent.train(policy_net, sample, &mut optimizer);
+                policy_net =
+                    agent.train::<BATCH_SIZE, MEMORY_SIZE>(policy_net, &memory, &mut optimizer);
             }
 
             step += 1;
