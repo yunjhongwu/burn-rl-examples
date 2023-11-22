@@ -63,17 +63,3 @@ pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B,
     let mut rng = thread_rng();
     (dist.sample(&mut rng) as u32).into()
 }
-
-pub(crate) fn get_elem<B: Backend, const D: usize>(
-    i: usize,
-    tensor: &Tensor<B, D>,
-) -> Option<ElemType> {
-    tensor.to_data().value.get(i).map(|x| x.elem::<ElemType>())
-}
-
-pub(crate) fn elementwise_min<B: Backend, const D: usize>(
-    lhs: Tensor<B, D>,
-    rhs: Tensor<B, D>,
-) -> Tensor<B, D> {
-    (lhs.clone() + rhs.clone() - (rhs - lhs).abs()).mul_scalar(0.5)
-}
