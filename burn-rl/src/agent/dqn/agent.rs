@@ -26,7 +26,7 @@ impl Default for DQNTrainingConfig {
             gamma: 0.999,
             tau: 0.005,
             learning_rate: 0.001,
-            batch_size: 128,
+            batch_size: 32,
         }
     }
 }

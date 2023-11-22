@@ -3,7 +3,7 @@ use burn::backend::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::Module;
 use burn::nn::{Initializer, Linear, LinearConfig};
-use burn::optim::RMSPropConfig;
+use burn::optim::AdamWConfig;
 use burn::tensor::activation::{relu, softmax};
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -60,9 +60,8 @@ impl<B: Backend> PPOModel<B> for Net<B> {}
 const MEMORY_SIZE: usize = 512;
 
 #[allow(unused)]
-pub fn run() {
-    let num_episodes = 512_usize;
-    let dense_size = 64_usize;
+pub fn run(num_episodes: usize) {
+    let dense_size = 128_usize;
 
     let mut env = MyEnv::new(false);
 
@@ -74,15 +73,14 @@ pub fn run() {
     let agent = MyAgent::default();
     let config = PPOTrainingConfig::default();
 
-    let mut optimizer = RMSPropConfig::new()
+    let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
         .init();
-
+    let mut memory = Memory::<MyEnv, PPOBackend, MEMORY_SIZE>::default();
     for episode in 0..num_episodes {
         let mut episode_done = false;
         let mut episode_reward = 0.0;
         let mut episode_duration = 0_usize;
-        let mut memory = Memory::<MyEnv, PPOBackend, MEMORY_SIZE>::default();
 
         env.reset();
         while !episode_done {
@@ -109,6 +107,7 @@ pub fn run() {
         );
 
         model = MyAgent::train::<MEMORY_SIZE>(model, &memory, &mut optimizer, &config);
+        memory.clear();
     }
 
     let valid_agent = agent.valid(model);

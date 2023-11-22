@@ -75,12 +75,9 @@ impl<B: Backend> DQNModel<B> for Net<B> {
 
 #[allow(unused)]
 const MEMORY_SIZE: usize = 4096;
-#[allow(unused)]
-const BATCH_SIZE: usize = 128;
 
 #[allow(unused)]
-pub fn run() {
-    let num_episodes = 512_usize;
+pub fn run(num_episodes: usize) {
     let eps_decay = 1000.0;
     let eps_start = 0.9;
     let eps_end = 0.05;
@@ -129,7 +126,7 @@ pub fn run() {
                 snapshot.done(),
             );
 
-            if BATCH_SIZE < memory.len() {
+            if config.batch_size < memory.len() {
                 policy_net =
                     agent.train::<MEMORY_SIZE>(policy_net, &memory, &mut optimizer, &config);
             }

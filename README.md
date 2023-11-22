@@ -1,6 +1,6 @@
 # Experimenting Reinforcement Learning with Rust [Burn](https://github.com/Tracel-AI/burn)
 
-## CartPole with DQN
+## Training on CartPole
 
 ![cartpole-training](./assets/cartpole.svg)
 
@@ -14,4 +14,4 @@ initialization with the standard behavior of OpenAI Gym CartPole.
 ## References
 
 - [PyTorch RL tutorial](https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html)
-
+- [PPO with TorchRL tutorial](https://pytorch.org/rl/tutorials/coding_ppo.html)
