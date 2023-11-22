@@ -169,6 +169,10 @@ mod tests {
         type ActionType = TestAction;
         type RewardType = ElemType;
 
+        fn new(visualized: bool) -> Self {
+            unimplemented!()
+        }
+
         fn state(&self) -> Self::StateType {
             unimplemented!()
         }
