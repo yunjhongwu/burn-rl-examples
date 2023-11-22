@@ -77,9 +77,13 @@ pub struct MountainCar {
     gym_env: MountainCarEnv,
 }
 
-impl MountainCar {
-    #[allow(unused)]
-    pub fn new(visualized: bool) -> Self {
+impl Environment for MountainCar {
+    type StateType = MountainCarState;
+    type ActionType = MountainCarAction;
+    type RewardType = ElemType;
+    const MAX_STEPS: usize = 200;
+
+    fn new(visualized: bool) -> Self {
         Self {
             gym_env: MountainCarEnv::new(if visualized {
                 RenderMode::Human
@@ -88,13 +92,6 @@ impl MountainCar {
             }),
         }
     }
-}
-
-impl Environment for MountainCar {
-    type StateType = MountainCarState;
-    type ActionType = MountainCarAction;
-    type RewardType = ElemType;
-    const MAX_STEPS: usize = 200;
 
     fn state(&self) -> Self::StateType {
         self.gym_env.state.into()

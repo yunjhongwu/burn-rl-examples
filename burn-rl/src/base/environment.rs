@@ -8,6 +8,8 @@ pub trait Environment: Debug {
 
     const MAX_STEPS: usize = usize::MAX;
 
+    fn new(visualized: bool) -> Self;
+
     fn state(&self) -> Self::StateType;
 
     fn reset(&mut self) -> Snapshot<Self::StateType>;

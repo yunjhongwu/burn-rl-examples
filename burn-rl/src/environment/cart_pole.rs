@@ -75,9 +75,13 @@ pub struct CartPole {
     gym_env: CartPoleEnv,
 }
 
-impl CartPole {
-    #[allow(unused)]
-    pub fn new(visualized: bool) -> Self {
+impl Environment for CartPole {
+    type StateType = CartPoleState;
+    type ActionType = CartPoleAction;
+    type RewardType = ElemType;
+    const MAX_STEPS: usize = 500;
+
+    fn new(visualized: bool) -> Self {
         Self {
             gym_env: CartPoleEnv::new(if visualized {
                 RenderMode::Human
@@ -86,13 +90,6 @@ impl CartPole {
             }),
         }
     }
-}
-
-impl Environment for CartPole {
-    type StateType = CartPoleState;
-    type ActionType = CartPoleAction;
-    type RewardType = ElemType;
-    const MAX_STEPS: usize = 500;
 
     fn state(&self) -> Self::StateType {
         self.gym_env.state.into()

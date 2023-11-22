@@ -13,9 +13,23 @@ use burn::tensor::backend::{ADBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
 
-const GAMMA: f64 = 0.999;
-const TAU: f64 = 0.005;
-const LR: f64 = 0.001;
+pub struct DQNTrainingConfig {
+    pub gamma: f64,
+    pub tau: f64,
+    pub learning_rate: f64,
+    pub batch_size: usize,
+}
+
+impl Default for DQNTrainingConfig {
+    fn default() -> Self {
+        Self {
+            gamma: 0.999,
+            tau: 0.005,
+            learning_rate: 0.001,
+            batch_size: 128,
+        }
+    }
+}
 
 pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
     target_net: M,
@@ -64,13 +78,14 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B>> DQN<E, B, M> {
 }
 
 impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
-    pub fn train<const BATCH_SIZE: usize, const CAP: usize>(
+    pub fn train<const CAP: usize>(
         &mut self,
         mut policy_net: M,
         memory: &Memory<E, B, CAP>,
         optimizer: &mut (impl Optimizer<M, B> + Sized),
+        config: &DQNTrainingConfig,
     ) -> M {
-        let sample_indices = sample_indices((0..memory.len()).collect(), BATCH_SIZE);
+        let sample_indices = sample_indices((0..memory.len()).collect(), config.batch_size);
         let state_batch = get_batch(memory.states(), &sample_indices, ref_to_state_tensor);
         let action_batch = get_batch(memory.actions(), &sample_indices, ref_to_action_tensor);
         let state_action_values = policy_net.forward(state_batch).gather(1, action_batch);
@@ -87,7 +102,7 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
         let reward_batch = get_batch(memory.rewards(), &sample_indices, ref_to_reward_tensor);
 
         let expected_state_action_values =
-            (next_state_values * not_done_batch).mul_scalar(GAMMA) + reward_batch;
+            (next_state_values * not_done_batch).mul_scalar(config.gamma) + reward_batch;
 
         let loss = MSELoss::default().forward(
             state_action_values,
@@ -98,8 +113,8 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
         let gradients = loss.backward();
         let gradient_params = GradientsParams::from_grads(gradients, &policy_net);
 
-        policy_net = optimizer.step(LR, policy_net, gradient_params);
-        <M as DQNModel<B>>::soft_update(&mut self.target_net, &policy_net, TAU);
+        policy_net = optimizer.step(config.learning_rate, policy_net, gradient_params);
+        <M as DQNModel<B>>::soft_update(&mut self.target_net, &policy_net, config.tau);
 
         policy_net
     }
