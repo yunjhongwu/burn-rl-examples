@@ -1,5 +1,6 @@
 mod dqn;
+mod ppo;
 
 fn main() {
-    dqn::run();
+    ppo::run();
 }

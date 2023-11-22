@@ -1,16 +1,23 @@
 use crate::base::environment::Environment;
 use burn::tensor::backend::Backend;
 use burn::tensor::{BasicOps, Tensor, TensorKind};
-use rand::prelude::SliceRandom;
+use rand::Rng;
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use std::marker::PhantomData;
 
 pub type MemoryIndices = Vec<usize>;
 
-pub fn sample_indices(mut indices: MemoryIndices, size: usize) -> MemoryIndices {
+pub fn sample_indices(indices: MemoryIndices, size: usize) -> MemoryIndices {
     let mut rng = rand::thread_rng();
-    indices.shuffle(&mut rng);
-    indices.iter().take(size).copied().collect()
+    let mut sample = Vec::<usize>::new();
+    for _ in 0..size {
+        unsafe {
+            let index = rng.gen_range(0..indices.len());
+            sample.push(*indices.get_unchecked(index));
+        }
+    }
+
+    sample
 }
 
 pub fn get_batch<B: Backend, const CAP: usize, T, K: TensorKind<B> + BasicOps<B>>(

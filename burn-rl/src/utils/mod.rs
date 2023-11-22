@@ -50,16 +50,31 @@ pub(crate) fn ref_to_not_done_tensor<B: Backend>(done: &bool) -> Tensor<B, 1> {
 }
 #[allow(unused)]
 pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
-    let dist = WeightedIndex::new(
-        output
-            .to_data()
-            .value
-            .iter()
-            .map(|x| x.elem::<ElemType>())
-            .collect::<Vec<ElemType>>()
-            .to_vec(),
-    )
-    .unwrap();
+    let prob = output
+        .to_data()
+        .value
+        .iter()
+        .map(|x| x.elem::<ElemType>())
+        .collect::<Vec<_>>()
+        .to_vec();
+
+    let dist = WeightedIndex::new(prob).unwrap();
+
     let mut rng = thread_rng();
     (dist.sample(&mut rng) as u32).into()
+}
+
+pub(crate) fn get_elem<B: Backend, const D: usize>(
+    i: usize,
+    tensor: &Tensor<B, D>,
+) -> Option<ElemType> {
+    tensor.to_data().value.get(i).map(|x| x.elem::<ElemType>())
+}
+
+pub(crate) fn elementwise_min<B: Backend, const D: usize>(
+    lhs: Tensor<B, D>,
+    rhs: Tensor<B, D>,
+) -> Tensor<B, D> {
+    let rhs_lower = rhs.clone().lower(lhs.clone());
+    lhs.clone().mask_where(rhs_lower, rhs.clone())
 }

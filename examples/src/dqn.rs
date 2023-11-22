@@ -7,13 +7,16 @@ use burn::tensor::activation::relu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
-use burn_rl::agent::DQNModel;
 use burn_rl::agent::DQN;
+use burn_rl::agent::{DQNModel, DQNTrainingConfig};
 use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 use burn_rl::environment::CartPole;
 
+#[allow(unused)]
 type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
+#[allow(unused)]
 type MyEnv = CartPole;
+#[allow(unused)]
 type MyAgent = DQN<MyEnv, DQNBackend, Net<DQNBackend>>;
 
 #[derive(Module, Debug)]
@@ -24,6 +27,7 @@ pub struct Net<B: Backend> {
 }
 
 impl<B: Backend> Net<B> {
+    #[allow(unused)]
     pub fn new(input_size: usize, dense_size: usize, output_size: usize) -> Self {
         Self {
             linear_0: LinearConfig::new(input_size, dense_size).init(),
@@ -68,9 +72,12 @@ impl<B: Backend> DQNModel<B> for Net<B> {
     }
 }
 
+#[allow(unused)]
 const MEMORY_SIZE: usize = 4096;
+#[allow(unused)]
 const BATCH_SIZE: usize = 128;
 
+#[allow(unused)]
 fn demo_model(agent: impl Agent<MyEnv>) {
     let mut env = MyEnv::new(true);
     let mut state = env.state();
@@ -83,8 +90,9 @@ fn demo_model(agent: impl Agent<MyEnv>) {
     }
 }
 
+#[allow(unused)]
 pub fn run() {
-    let num_episodes = 256_usize;
+    let num_episodes = 512_usize;
     let eps_decay = 1000.0;
     let eps_start = 0.9;
     let eps_end = 0.05;
@@ -115,6 +123,8 @@ pub fn run() {
         let mut episode_duration = 0_usize;
         let mut state = env.state();
 
+        let config = DQNTrainingConfig::default();
+
         while !episode_done {
             let eps_threshold =
                 eps_end + (eps_start - eps_end) * f64::exp(-(step as f64) / eps_decay);
@@ -133,7 +143,7 @@ pub fn run() {
 
             if BATCH_SIZE < memory.len() {
                 policy_net =
-                    agent.train::<BATCH_SIZE, MEMORY_SIZE>(policy_net, &memory, &mut optimizer);
+                    agent.train::<MEMORY_SIZE>(policy_net, &memory, &mut optimizer, &config);
             }
 
             step += 1;
