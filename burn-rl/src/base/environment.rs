@@ -1,10 +1,10 @@
-use crate::base::{Action, Snapshot, State};
+use crate::base::{Action, ElemType, Snapshot, State};
 use std::fmt::Debug;
 
 pub trait Environment: Debug {
     type StateType: State;
     type ActionType: Action;
-    type RewardType: Debug + Copy + Clone + Into<f32>;
+    type RewardType: Debug + Clone + Into<ElemType>;
 
     const MAX_STEPS: usize = usize::MAX;
 
