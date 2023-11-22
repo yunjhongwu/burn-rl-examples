@@ -13,6 +13,4 @@ impl<B: Backend> PPOOutput<B> {
     }
 }
 
-pub trait PPOModel<B: Backend>: Model<B, Tensor<B, 2>, PPOOutput<B>> {
-    fn params(&self);
-}
+pub trait PPOModel<B: Backend>: Model<B, Tensor<B, 2>, PPOOutput<B>> {}

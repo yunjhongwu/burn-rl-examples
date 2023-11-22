@@ -1,3 +1,4 @@
+use crate::utils::demo_model;
 use burn::backend::ndarray::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{Module, Param};
@@ -9,7 +10,7 @@ use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
 use burn_rl::agent::DQN;
 use burn_rl::agent::{DQNModel, DQNTrainingConfig};
-use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
+use burn_rl::base::{Action, ElemType, Environment, Memory, Model, State};
 use burn_rl::environment::CartPole;
 
 #[allow(unused)]
@@ -76,19 +77,6 @@ impl<B: Backend> DQNModel<B> for Net<B> {
 const MEMORY_SIZE: usize = 4096;
 #[allow(unused)]
 const BATCH_SIZE: usize = 128;
-
-#[allow(unused)]
-fn demo_model(agent: impl Agent<MyEnv>) {
-    let mut env = MyEnv::new(true);
-    let mut state = env.state();
-    let mut done = false;
-    while !done {
-        let action = agent.react(&state);
-        let snapshot = env.step(action);
-        state = *snapshot.state();
-        done = snapshot.done();
-    }
-}
 
 #[allow(unused)]
 pub fn run() {
@@ -164,5 +152,5 @@ pub fn run() {
     }
 
     let valid_agent = agent.valid();
-    demo_model(valid_agent);
+    demo_model::<MyEnv>(valid_agent);
 }

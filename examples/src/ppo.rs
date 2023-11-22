@@ -1,3 +1,4 @@
+use crate::utils::demo_model;
 use burn::backend::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::Module;
@@ -8,7 +9,7 @@ use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use burn_autodiff::ADBackendDecorator;
 use burn_rl::agent::{PPOModel, PPOOutput, PPOTrainingConfig, PPO};
-use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
+use burn_rl::base::{Action, ElemType, Environment, Memory, Model, State};
 use burn_rl::environment::CartPole;
 
 #[allow(unused)]
@@ -53,29 +54,7 @@ impl<B: Backend> Model<B, Tensor<B, 2>, PPOOutput<B>> for Net<B> {
     }
 }
 
-impl<B: Backend> PPOModel<B> for Net<B> {
-    fn params(&self) {
-        println!(
-            "params linear {:?}",
-            self.linear.weight.val().to_data().value.to_vec()
-        );
-        //  println!("params linear_actor {:?}", self.linear_actor.weight.val().to_data().value.to_vec());
-        // println!("params linear_critic {:?}", self.linear_critic.weight.val().to_data().value.to_vec());
-    }
-}
-
-#[allow(unused)]
-fn demo_model(agent: impl Agent<MyEnv>) {
-    let mut env = MyEnv::new(true);
-    let mut state = env.state();
-    let mut done = false;
-    while !done {
-        let action = agent.react(&state);
-        let snapshot = env.step(action);
-        state = *snapshot.state();
-        done = snapshot.done();
-    }
-}
+impl<B: Backend> PPOModel<B> for Net<B> {}
 
 #[allow(unused)]
 const MEMORY_SIZE: usize = 512;
@@ -133,5 +112,5 @@ pub fn run() {
     }
 
     let valid_agent = agent.valid(model);
-    demo_model(valid_agent);
+    demo_model::<MyEnv>(valid_agent);
 }
