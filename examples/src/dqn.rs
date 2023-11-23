@@ -1,24 +1,13 @@
-use crate::utils::demo_model;
-use burn::backend::ndarray::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{Module, Param};
 use burn::nn::{Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::relu;
-use burn::tensor::backend::Backend;
+use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
-use burn_autodiff::ADBackendDecorator;
 use burn_rl::agent::DQN;
 use burn_rl::agent::{DQNModel, DQNTrainingConfig};
-use burn_rl::base::{Action, ElemType, Environment, Memory, Model, State};
-use burn_rl::environment::CartPole;
-
-#[allow(unused)]
-type DQNBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
-#[allow(unused)]
-type MyEnv = CartPole;
-#[allow(unused)]
-type MyAgent = DQN<MyEnv, DQNBackend, Net<DQNBackend>>;
+use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 
 #[derive(Module, Debug)]
 pub struct Net<B: Backend> {
@@ -75,24 +64,26 @@ impl<B: Backend> DQNModel<B> for Net<B> {
 
 #[allow(unused)]
 const MEMORY_SIZE: usize = 4096;
+const DENSE_SIZE: usize = 128;
+const EPS_DECAY: f64 = 1000.0;
+const EPS_START: f64 = 0.9;
+const EPS_END: f64 = 0.05;
+
+type MyAgent<E, B> = DQN<E, B, Net<B>>;
 
 #[allow(unused)]
-pub fn run(num_episodes: usize) {
-    let eps_decay = 1000.0;
-    let eps_start = 0.9;
-    let eps_end = 0.05;
-    let dense_size = 128_usize;
+pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
+    let mut env = E::new(visualized);
 
-    let mut env = MyEnv::new(false);
-
-    let model = Net::<DQNBackend>::new(
-        <<MyEnv as Environment>::StateType as State>::size(),
-        dense_size,
-        <<MyEnv as Environment>::ActionType as Action>::size(),
+    let model = Net::<B>::new(
+        <<E as Environment>::StateType as State>::size(),
+        DENSE_SIZE,
+        <<E as Environment>::ActionType as Action>::size(),
     );
+
     let mut agent = MyAgent::new(model);
 
-    let mut memory = Memory::<MyEnv, DQNBackend, MEMORY_SIZE>::default();
+    let mut memory = Memory::<E, B, MEMORY_SIZE>::default();
 
     let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
@@ -104,7 +95,7 @@ pub fn run(num_episodes: usize) {
 
     for episode in 0..num_episodes {
         let mut episode_done = false;
-        let mut episode_reward = 0.0;
+        let mut episode_reward: ElemType = 0.0;
         let mut episode_duration = 0_usize;
         let mut state = env.state();
 
@@ -112,17 +103,19 @@ pub fn run(num_episodes: usize) {
 
         while !episode_done {
             let eps_threshold =
-                eps_end + (eps_start - eps_end) * f64::exp(-(step as f64) / eps_decay);
-            let action = MyAgent::react_with_exploration(&policy_net, state, eps_threshold);
+                EPS_END + (EPS_START - EPS_END) * f64::exp(-(step as f64) / EPS_DECAY);
+            let action =
+                DQN::<E, B, Net<B>>::react_with_exploration(&policy_net, state, eps_threshold);
             let snapshot = env.step(action);
 
-            episode_reward += snapshot.reward();
+            episode_reward +=
+                <<E as Environment>::RewardType as Into<ElemType>>::into(snapshot.reward().clone());
 
             memory.push(
                 state,
                 *snapshot.state(),
                 action,
-                snapshot.reward(),
+                snapshot.reward().clone(),
                 snapshot.done(),
             );
 
@@ -134,7 +127,7 @@ pub fn run(num_episodes: usize) {
             step += 1;
             episode_duration += 1;
 
-            if snapshot.done() || episode_duration >= MyEnv::MAX_STEPS {
+            if snapshot.done() || episode_duration >= E::MAX_STEPS {
                 env.reset();
                 episode_done = true;
 
@@ -148,6 +141,5 @@ pub fn run(num_episodes: usize) {
         }
     }
 
-    let valid_agent = agent.valid();
-    demo_model::<MyEnv>(valid_agent);
+    agent.valid()
 }

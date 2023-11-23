@@ -61,6 +61,7 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> DQN<E, B, M> {
         &self.target_net
     }
 }
+
 impl<E: Environment, B: ADBackend, M: DQNModel<B>> DQN<E, B, M> {
     pub fn react_with_exploration(
         policy_net: &M,

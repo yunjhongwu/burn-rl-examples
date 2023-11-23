@@ -185,11 +185,11 @@ mod tests {
             unimplemented!()
         }
 
-        fn reset(&mut self) -> Snapshot<Self::StateType> {
+        fn reset(&mut self) -> Snapshot<Self> {
             unimplemented!()
         }
 
-        fn step(&mut self, _action: Self::ActionType) -> Snapshot<Self::StateType> {
+        fn step(&mut self, _action: Self::ActionType) -> Snapshot<Self> {
             unimplemented!()
         }
     }
