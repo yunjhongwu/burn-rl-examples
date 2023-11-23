@@ -4,7 +4,14 @@
 
 ![cartpole-training](./assets/cartpole.svg)
 
-**Remark.** This project uses [gym-rs](https://github.com/MathisWellmann/gym-rs) for simulating environments.
+### Agents
+The project implements the following algorithms:
+ - Deep Q-Network (DQN)
+ - Proximal Policy Optimization (PPO)
+ - Soft Actor-Critic for Discrete Action (SAC-Discrete)
+
+### Environment
+This project uses [gym-rs](https://github.com/MathisWellmann/gym-rs) for simulating environments.
 Note that the CartPole implementation in gym-rs may lead to slow convergence due to its extended initial state space.
 To address this, apply the modification
 from [this branch](https://github.com/yunjhongwu/gym-rs/tree/fix-cartpole-starting-state)
@@ -15,3 +22,4 @@ initialization with the standard behavior of OpenAI Gym CartPole.
 
 - [PyTorch RL tutorial](https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html)
 - [PPO with TorchRL tutorial](https://pytorch.org/rl/tutorials/coding_ppo.html)
+- Christodoulou, P. (2019). Soft actor-critic for discrete action settings. *arXiv preprint arXiv:1910.07207*.

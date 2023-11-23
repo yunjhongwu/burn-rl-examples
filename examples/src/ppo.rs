@@ -1,4 +1,3 @@
-use burn::grad_clipping::GradientClippingConfig;
 use burn::module::Module;
 use burn::nn::{Initializer, Linear, LinearConfig};
 use burn::optim::AdamWConfig;
@@ -53,7 +52,7 @@ type MyAgent<E, B> = PPO<E, B, Net<B>>;
 
 #[allow(unused)]
 pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
-    let mut env = E::new(false);
+    let mut env = E::new(visualized);
 
     let mut model = Net::<B>::new(
         <<E as Environment>::StateType as State>::size(),
@@ -64,7 +63,7 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
     let config = PPOTrainingConfig::default();
 
     let mut optimizer = AdamWConfig::new()
-        .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
+        .with_grad_clipping(config.clip_grad.clone())
         .init();
     let mut memory = Memory::<E, B, MEMORY_SIZE>::default();
     for episode in 0..num_episodes {

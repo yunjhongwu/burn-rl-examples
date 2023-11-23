@@ -2,11 +2,12 @@ use crate::agent::ppo::model::{PPOModel, PPOOutput};
 use crate::base::{get_batch, sample_indices, Agent, ElemType, Environment, Memory, MemoryIndices};
 use crate::utils::{
     elementwise_min, get_elem, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
-    ref_to_state_tensor, sample_action_from_tensor, to_state_tensor,
+    ref_to_state_tensor, sample_action_from_tensor, to_state_tensor, update_parameters,
 };
+use burn::grad_clipping::GradientClippingConfig;
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
-use burn::optim::{GradientsParams, Optimizer};
+use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
 use std::marker::PhantomData;
@@ -20,6 +21,7 @@ pub struct PPOTrainingConfig {
     learning_rate: ElemType,
     epochs: usize,
     batch_size: usize,
+    pub clip_grad: Option<GradientClippingConfig>,
 }
 
 impl Default for PPOTrainingConfig {
@@ -33,6 +35,7 @@ impl Default for PPOTrainingConfig {
             learning_rate: 0.001,
             epochs: 8,
             batch_size: 8,
+            clip_grad: Some(GradientClippingConfig::Value(100.0)),
         }
     }
 }
@@ -163,12 +166,8 @@ impl<E: Environment, B: ADBackend, M: PPOModel<B> + ADModule<B>> PPO<E, B, M> {
                 let loss = actor_loss
                     + critic_loss.mul_scalar(config.critic_weight)
                     + policy_negative_entropy.mul_scalar(config.entropy_weight);
-
-                let gradients = loss.backward();
-                let gradient_params = GradientsParams::from_grads(gradients, &policy_net);
-
                 policy_net =
-                    optimizer.step(config.learning_rate.into(), policy_net, gradient_params);
+                    update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
             }
         }
         policy_net

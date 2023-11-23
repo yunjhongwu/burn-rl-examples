@@ -1,23 +1,25 @@
 use crate::agent::DQNModel;
 use crate::base::agent::Agent;
 use crate::base::environment::Environment;
-use crate::base::{get_batch, sample_indices, Action, Memory};
+use crate::base::{get_batch, sample_indices, Action, ElemType, Memory};
 use crate::utils::{
     convert_tenor_to_action, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
-    ref_to_state_tensor, to_state_tensor,
+    ref_to_state_tensor, to_state_tensor, update_parameters,
 };
+use burn::grad_clipping::GradientClippingConfig;
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
-use burn::optim::{GradientsParams, Optimizer};
+use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
 
 pub struct DQNTrainingConfig {
-    pub gamma: f64,
-    pub tau: f64,
-    pub learning_rate: f64,
+    pub gamma: ElemType,
+    pub tau: ElemType,
+    pub learning_rate: ElemType,
     pub batch_size: usize,
+    pub clip_grad: Option<GradientClippingConfig>,
 }
 
 impl Default for DQNTrainingConfig {
@@ -27,6 +29,7 @@ impl Default for DQNTrainingConfig {
             tau: 0.005,
             learning_rate: 0.001,
             batch_size: 32,
+            clip_grad: Some(GradientClippingConfig::Value(100.0)),
         }
     }
 }
@@ -111,10 +114,8 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
             Reduction::Mean,
         );
 
-        let gradients = loss.backward();
-        let gradient_params = GradientsParams::from_grads(gradients, &policy_net);
+        policy_net = update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
 
-        policy_net = optimizer.step(config.learning_rate, policy_net, gradient_params);
         <M as DQNModel<B>>::soft_update(&mut self.target_net, &policy_net, config.tau);
 
         policy_net
