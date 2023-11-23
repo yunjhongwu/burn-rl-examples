@@ -12,7 +12,7 @@ pub trait Environment: Debug {
 
     fn state(&self) -> Self::StateType;
 
-    fn reset(&mut self) -> Snapshot<Self::StateType>;
+    fn reset(&mut self) -> Snapshot<Self>;
 
-    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self::StateType>;
+    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self>;
 }

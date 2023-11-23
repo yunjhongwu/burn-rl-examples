@@ -1,15 +1,15 @@
-use crate::base::{ElemType, State};
+use crate::base::Environment;
 use std::fmt::Debug;
 
 #[derive(Debug)]
-pub struct Snapshot<S: State> {
-    state: S,
-    reward: ElemType,
+pub struct Snapshot<E: Environment + ?Sized> {
+    state: E::StateType,
+    reward: E::RewardType,
     done: bool,
 }
 
-impl<S: State> Snapshot<S> {
-    pub fn new(state: S, reward: ElemType, done: bool) -> Self {
+impl<E: Environment> Snapshot<E> {
+    pub fn new(state: E::StateType, reward: E::RewardType, done: bool) -> Self {
         Self {
             state,
             reward,
@@ -17,12 +17,12 @@ impl<S: State> Snapshot<S> {
         }
     }
 
-    pub fn state(&self) -> &S {
+    pub fn state(&self) -> &E::StateType {
         &self.state
     }
 
-    pub fn reward(&self) -> ElemType {
-        self.reward
+    pub fn reward(&self) -> &E::RewardType {
+        &self.reward
     }
 
     pub fn done(&self) -> bool {

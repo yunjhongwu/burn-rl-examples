@@ -1,23 +1,12 @@
-use crate::utils::demo_model;
-use burn::backend::NdArrayBackend;
 use burn::grad_clipping::GradientClippingConfig;
 use burn::module::Module;
 use burn::nn::{Initializer, Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::{relu, softmax};
-use burn::tensor::backend::Backend;
+use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
-use burn_autodiff::ADBackendDecorator;
 use burn_rl::agent::{PPOModel, PPOOutput, PPOTrainingConfig, PPO};
-use burn_rl::base::{Action, ElemType, Environment, Memory, Model, State};
-use burn_rl::environment::CartPole;
-
-#[allow(unused)]
-type PPOBackend = ADBackendDecorator<NdArrayBackend<ElemType>>;
-#[allow(unused)]
-type MyEnv = CartPole;
-#[allow(unused)]
-type MyAgent = PPO<MyEnv, PPOBackend, Net<PPOBackend>>;
+use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 
 #[derive(Module, Debug)]
 pub struct Net<B: Backend> {
@@ -58,17 +47,18 @@ impl<B: Backend> PPOModel<B> for Net<B> {}
 
 #[allow(unused)]
 const MEMORY_SIZE: usize = 512;
+const DENSE_SIZE: usize = 128;
+
+type MyAgent<E, B> = PPO<E, B, Net<B>>;
 
 #[allow(unused)]
-pub fn run(num_episodes: usize) {
-    let dense_size = 128_usize;
+pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
+    let mut env = E::new(false);
 
-    let mut env = MyEnv::new(false);
-
-    let mut model = Net::<PPOBackend>::new(
-        <<MyEnv as Environment>::StateType as State>::size(),
-        dense_size,
-        <<MyEnv as Environment>::ActionType as Action>::size(),
+    let mut model = Net::<B>::new(
+        <<E as Environment>::StateType as State>::size(),
+        DENSE_SIZE,
+        <<E as Environment>::ActionType as Action>::size(),
     );
     let agent = MyAgent::default();
     let config = PPOTrainingConfig::default();
@@ -76,7 +66,7 @@ pub fn run(num_episodes: usize) {
     let mut optimizer = AdamWConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
         .init();
-    let mut memory = Memory::<MyEnv, PPOBackend, MEMORY_SIZE>::default();
+    let mut memory = Memory::<E, B, MEMORY_SIZE>::default();
     for episode in 0..num_episodes {
         let mut episode_done = false;
         let mut episode_reward = 0.0;
@@ -85,21 +75,22 @@ pub fn run(num_episodes: usize) {
         env.reset();
         while !episode_done {
             let state = env.state();
-            let action = MyAgent::react_with_model(&state, &model);
+            let action = MyAgent::<E, _>::react_with_model(&state, &model);
             let snapshot = env.step(action);
 
-            episode_reward += snapshot.reward();
+            episode_reward +=
+                <<E as Environment>::RewardType as Into<ElemType>>::into(snapshot.reward().clone());
 
             memory.push(
                 state,
                 *snapshot.state(),
                 action,
-                snapshot.reward(),
+                snapshot.reward().clone(),
                 snapshot.done(),
             );
 
             episode_duration += 1;
-            episode_done = snapshot.done() || episode_duration >= MyEnv::MAX_STEPS;
+            episode_done = snapshot.done() || episode_duration >= E::MAX_STEPS;
         }
         println!(
             "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
@@ -110,6 +101,5 @@ pub fn run(num_episodes: usize) {
         memory.clear();
     }
 
-    let valid_agent = agent.valid(model);
-    demo_model::<MyEnv>(valid_agent);
+    agent.valid(model)
 }

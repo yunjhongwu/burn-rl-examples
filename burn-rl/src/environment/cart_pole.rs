@@ -95,12 +95,12 @@ impl Environment for CartPole {
         self.gym_env.state.into()
     }
 
-    fn reset(&mut self) -> Snapshot<Self::StateType> {
+    fn reset(&mut self) -> Snapshot<Self> {
         self.gym_env.reset(None, false, None);
         Snapshot::new(self.gym_env.state.into(), 1.0, false)
     }
 
-    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self::StateType> {
+    fn step(&mut self, action: Self::ActionType) -> Snapshot<Self> {
         let action_reward = self.gym_env.step(action as usize);
         Snapshot::new(
             action_reward.observation.into(),
