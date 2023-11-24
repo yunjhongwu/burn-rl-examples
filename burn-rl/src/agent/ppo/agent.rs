@@ -1,44 +1,16 @@
 use crate::agent::ppo::model::{PPOModel, PPOOutput};
+use crate::agent::PPOTrainingConfig;
 use crate::base::{get_batch, sample_indices, Agent, ElemType, Environment, Memory, MemoryIndices};
 use crate::utils::{
     elementwise_min, get_elem, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
     ref_to_state_tensor, sample_action_from_tensor, to_state_tensor, update_parameters,
 };
-use burn::grad_clipping::GradientClippingConfig;
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
 use std::marker::PhantomData;
-
-pub struct PPOTrainingConfig {
-    gamma: ElemType,
-    lambda: ElemType,
-    epsilon_clip: ElemType,
-    critic_weight: ElemType,
-    entropy_weight: ElemType,
-    learning_rate: ElemType,
-    epochs: usize,
-    batch_size: usize,
-    pub clip_grad: Option<GradientClippingConfig>,
-}
-
-impl Default for PPOTrainingConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.99,
-            lambda: 0.95,
-            epsilon_clip: 0.2,
-            critic_weight: 0.5,
-            entropy_weight: 0.01,
-            learning_rate: 0.001,
-            epochs: 8,
-            batch_size: 8,
-            clip_grad: Some(GradientClippingConfig::Value(100.0)),
-        }
-    }
-}
 
 pub struct PPO<E: Environment, B: Backend, M: PPOModel<B>> {
     model: Option<M>,

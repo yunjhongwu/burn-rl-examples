@@ -1,5 +1,5 @@
 use crate::agent::sac::model::SACTemperature;
-use crate::agent::{SACActor, SACCritic, SACOptimizer};
+use crate::agent::{SACActor, SACCritic, SACOptimizer, SACTrainingConfig};
 use crate::base::agent::Agent;
 use crate::base::environment::Environment;
 use crate::base::{get_batch, sample_indices, Action, ElemType, Memory};
@@ -8,35 +8,12 @@ use crate::utils::{
     ref_to_reward_tensor, ref_to_state_tensor, sample_action_from_tensor, to_state_tensor,
     update_parameters,
 };
-use burn::grad_clipping::GradientClippingConfig;
 use burn::module::{ADModule, Module};
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
-
-pub struct SACTrainingConfig {
-    pub gamma: ElemType,
-    pub tau: ElemType,
-    pub learning_rate: ElemType,
-    pub min_probability: ElemType,
-    pub batch_size: usize,
-    pub clip_grad: Option<GradientClippingConfig>,
-}
-
-impl Default for SACTrainingConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.999,
-            tau: 0.005,
-            learning_rate: 0.001,
-            min_probability: 1e-9,
-            batch_size: 32,
-            clip_grad: Some(GradientClippingConfig::Value(1.0)),
-        }
-    }
-}
 
 pub struct SAC<E: Environment, B: Backend, Actor: SACActor<B>> {
     actor: Option<Actor>,
@@ -64,6 +41,12 @@ impl<E: Environment, B: Backend, Actor: SACActor<B>> SAC<E, B, Actor> {
             action: PhantomData,
             backend: PhantomData,
         }
+    }
+
+    pub fn react_with_model(state: &E::StateType, actor: &Actor) -> E::ActionType {
+        sample_action_from_tensor::<E::ActionType, _>(
+            actor.forward(to_state_tensor(*state).unsqueeze()),
+        )
     }
 
     pub fn model(&self) -> &Option<Actor> {

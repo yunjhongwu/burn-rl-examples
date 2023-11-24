@@ -73,9 +73,6 @@ impl<B: Backend> SACCritic<B> for Critic<B> {
 #[allow(unused)]
 const MEMORY_SIZE: usize = 4096;
 const DENSE_SIZE: usize = 32;
-const EPS_DECAY: f64 = 1000.0;
-const EPS_START: f64 = 0.9;
-const EPS_END: f64 = 0.05;
 type MyAgent<E, B> = SAC<E, B, Actor<B>>;
 
 #[allow(unused)]
@@ -117,9 +114,7 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         let mut state = env.state();
 
         while !episode_done {
-            let eps_threshold =
-                EPS_END + (EPS_START - EPS_END) * f64::exp(-(step as f64) / EPS_DECAY);
-            let action = MyAgent::<E, _>::react_with_exploration(&actor, state, eps_threshold);
+            let action = MyAgent::<E, _>::react_with_model(&state, &actor);
             let snapshot = env.step(action);
 
             episode_reward +=

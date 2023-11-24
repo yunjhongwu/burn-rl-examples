@@ -1,38 +1,17 @@
-use crate::agent::DQNModel;
+use crate::agent::{DQNModel, DQNTrainingConfig};
 use crate::base::agent::Agent;
 use crate::base::environment::Environment;
-use crate::base::{get_batch, sample_indices, Action, ElemType, Memory};
+use crate::base::{get_batch, sample_indices, Action, Memory};
 use crate::utils::{
     convert_tenor_to_action, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
     ref_to_state_tensor, to_state_tensor, update_parameters,
 };
-use burn::grad_clipping::GradientClippingConfig;
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
-
-pub struct DQNTrainingConfig {
-    pub gamma: ElemType,
-    pub tau: ElemType,
-    pub learning_rate: ElemType,
-    pub batch_size: usize,
-    pub clip_grad: Option<GradientClippingConfig>,
-}
-
-impl Default for DQNTrainingConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.999,
-            tau: 0.005,
-            learning_rate: 0.001,
-            batch_size: 32,
-            clip_grad: Some(GradientClippingConfig::Value(100.0)),
-        }
-    }
-}
 
 pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
     target_net: M,
