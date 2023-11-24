@@ -13,6 +13,4 @@ impl<B: Backend> PPOOutput<B> {
     }
 }
 
-pub trait PPOModel<B: Backend>: Model<B, Tensor<B, 2>, PPOOutput<B>> {
-    fn inference(&self, input: Tensor<B, 2>) -> Tensor<B, 2>;
-}
+pub trait PPOModel<B: Backend>: Model<B, Tensor<B, 2>, PPOOutput<B>, Tensor<B, 2>> {}

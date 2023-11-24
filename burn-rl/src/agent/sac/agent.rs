@@ -28,7 +28,7 @@ impl<E: Environment, B: Backend, Actor: SACActor<B>> Agent<E> for SAC<E, B, Acto
             self.actor
                 .as_ref()
                 .unwrap()
-                .forward(to_state_tensor(*state).unsqueeze()),
+                .infer(to_state_tensor(*state).unsqueeze()),
         )
     }
 }

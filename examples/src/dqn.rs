@@ -34,6 +34,10 @@ impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Net<B> {
 
         relu(self.linear_2.forward(layer_1_output))
     }
+
+    fn infer(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        self.forward(input)
+    }
 }
 
 impl<B: Backend> DQNModel<B> for Net<B> {

@@ -32,6 +32,10 @@ impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Actor<B> {
 
         softmax(self.linear_2.forward(layer_1_output), 1)
     }
+
+    fn infer(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        self.forward(input)
+    }
 }
 
 impl<B: Backend> SACActor<B> for Actor<B> {}
@@ -59,6 +63,10 @@ impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Critic<B> {
         let layer_1_output = relu(self.linear_1.forward(layer_0_output));
 
         self.linear_2.forward(layer_1_output)
+    }
+
+    fn infer(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        self.forward(input)
     }
 }
 
