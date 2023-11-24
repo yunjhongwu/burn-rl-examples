@@ -24,7 +24,7 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
     fn react(&self, state: &E::StateType) -> E::ActionType {
         convert_tenor_to_action::<E::ActionType, B>(
             self.target_net
-                .forward(ref_to_state_tensor(state).unsqueeze()),
+                .infer(ref_to_state_tensor(state).unsqueeze()),
         )
     }
 }
