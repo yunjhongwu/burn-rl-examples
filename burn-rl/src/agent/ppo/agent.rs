@@ -1,41 +1,16 @@
 use crate::agent::ppo::model::{PPOModel, PPOOutput};
+use crate::agent::PPOTrainingConfig;
 use crate::base::{get_batch, sample_indices, Agent, ElemType, Environment, Memory, MemoryIndices};
 use crate::utils::{
     elementwise_min, get_elem, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
-    ref_to_state_tensor, sample_action_from_tensor, to_state_tensor,
+    ref_to_state_tensor, sample_action_from_tensor, to_state_tensor, update_parameters,
 };
 use burn::module::ADModule;
 use burn::nn::loss::{MSELoss, Reduction};
-use burn::optim::{GradientsParams, Optimizer};
+use burn::optim::Optimizer;
 use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
 use std::marker::PhantomData;
-
-pub struct PPOTrainingConfig {
-    gamma: ElemType,
-    lambda: ElemType,
-    epsilon_clip: ElemType,
-    critic_weight: ElemType,
-    entropy_weight: ElemType,
-    learning_rate: ElemType,
-    epochs: usize,
-    batch_size: usize,
-}
-
-impl Default for PPOTrainingConfig {
-    fn default() -> Self {
-        Self {
-            gamma: 0.99,
-            lambda: 0.95,
-            epsilon_clip: 0.2,
-            critic_weight: 0.5,
-            entropy_weight: 0.01,
-            learning_rate: 0.001,
-            epochs: 8,
-            batch_size: 8,
-        }
-    }
-}
 
 pub struct PPO<E: Environment, B: Backend, M: PPOModel<B>> {
     model: Option<M>,
@@ -163,12 +138,8 @@ impl<E: Environment, B: ADBackend, M: PPOModel<B> + ADModule<B>> PPO<E, B, M> {
                 let loss = actor_loss
                     + critic_loss.mul_scalar(config.critic_weight)
                     + policy_negative_entropy.mul_scalar(config.entropy_weight);
-
-                let gradients = loss.backward();
-                let gradient_params = GradientsParams::from_grads(gradients, &policy_net);
-
                 policy_net =
-                    optimizer.step(config.learning_rate.into(), policy_net, gradient_params);
+                    update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
             }
         }
         policy_net

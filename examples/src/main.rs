@@ -6,13 +6,14 @@ use burn_rl::environment::CartPole;
 
 mod dqn;
 mod ppo;
+mod sac;
 mod utils;
 
 type Backend = ADBackendDecorator<NdArrayBackend<ElemType>>;
 type Env = CartPole;
 
 fn main() {
-    let agent = dqn::run::<Env, Backend>(512, false);
+    let agent = sac::run::<Env, Backend>(512, false);
 
     demo_model::<Env>(agent);
 }

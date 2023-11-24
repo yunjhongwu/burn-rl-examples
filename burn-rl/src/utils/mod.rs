@@ -1,6 +1,9 @@
 use crate::base::{Action, ElemType, State};
-use burn::tensor::backend::Backend;
+use burn::module::ADModule;
+use burn::optim::{GradientsParams, Optimizer};
+use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::{ElementConversion, Int, Tensor};
+use burn::LearningRate;
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::thread_rng;
 
@@ -77,4 +80,15 @@ pub(crate) fn elementwise_min<B: Backend, const D: usize>(
 ) -> Tensor<B, D> {
     let rhs_lower = rhs.clone().lower(lhs.clone());
     lhs.clone().mask_where(rhs_lower, rhs.clone())
+}
+
+pub(crate) fn update_parameters<B: ADBackend, M: ADModule<B>>(
+    loss: Tensor<B, 1>,
+    module: M,
+    optimizer: &mut impl Optimizer<M, B>,
+    learning_rate: LearningRate,
+) -> M {
+    let gradients = loss.backward();
+    let gradient_params = GradientsParams::from_grads(gradients, &module);
+    optimizer.step(learning_rate, module, gradient_params)
 }

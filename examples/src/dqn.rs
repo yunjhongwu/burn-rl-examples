@@ -1,5 +1,5 @@
-use burn::grad_clipping::GradientClippingConfig;
-use burn::module::{Module, Param};
+use crate::utils::soft_update_linear;
+use burn::module::Module;
 use burn::nn::{Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::relu;
@@ -25,24 +25,6 @@ impl<B: Backend> Net<B> {
             linear_2: LinearConfig::new(dense_size, output_size).init(),
         }
     }
-
-    fn soft_update_tensor<const N: usize>(
-        this: &Param<Tensor<B, N>>,
-        that: &Param<Tensor<B, N>>,
-        tau: f64,
-    ) -> Param<Tensor<B, N>> {
-        let that_weight = that.val();
-        let this_weight = this.val();
-        let new_this_weight = this_weight * (1.0 - tau) + that_weight * tau;
-
-        Param::from(new_this_weight.no_grad())
-    }
-    fn soft_update_linear(this: &mut Linear<B>, that: &Linear<B>, tau: f64) {
-        this.weight = Self::soft_update_tensor(&this.weight, &that.weight, tau);
-        if let (Some(this_bias), Some(that_bias)) = (&mut this.bias, &that.bias) {
-            this.bias = Some(Self::soft_update_tensor(this_bias, that_bias, tau));
-        }
-    }
 }
 
 impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Net<B> {
@@ -55,10 +37,10 @@ impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Net<B> {
 }
 
 impl<B: Backend> DQNModel<B> for Net<B> {
-    fn soft_update(this: &mut Self, that: &Self, tau: f64) {
-        Self::soft_update_linear(&mut this.linear_0, &that.linear_0, tau);
-        Self::soft_update_linear(&mut this.linear_1, &that.linear_1, tau);
-        Self::soft_update_linear(&mut this.linear_2, &that.linear_2, tau);
+    fn soft_update(this: &mut Self, that: &Self, tau: ElemType) {
+        soft_update_linear(&mut this.linear_0, &that.linear_0, tau);
+        soft_update_linear(&mut this.linear_1, &that.linear_1, tau);
+        soft_update_linear(&mut this.linear_2, &that.linear_2, tau);
     }
 }
 
@@ -83,10 +65,12 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
 
     let mut agent = MyAgent::new(model);
 
+    let config = DQNTrainingConfig::default();
+
     let mut memory = Memory::<E, B, MEMORY_SIZE>::default();
 
     let mut optimizer = AdamWConfig::new()
-        .with_grad_clipping(Some(GradientClippingConfig::Value(100.0)))
+        .with_grad_clipping(config.clip_grad.clone())
         .init();
 
     let mut policy_net = agent.model().clone();
@@ -98,8 +82,6 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         let mut episode_reward: ElemType = 0.0;
         let mut episode_duration = 0_usize;
         let mut state = env.state();
-
-        let config = DQNTrainingConfig::default();
 
         while !episode_done {
             let eps_threshold =

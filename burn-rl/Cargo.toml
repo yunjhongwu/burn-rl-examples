@@ -9,3 +9,4 @@ rand = "0.8.5"
 burn = { version = "0.10.0", features = ["ndarray", "autodiff"] }
 gym-rs = "0.3.0"
 ringbuffer = "0.15.0"
+serde = { workspace = true }
