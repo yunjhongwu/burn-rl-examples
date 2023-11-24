@@ -42,7 +42,12 @@ impl<B: Backend> Model<B, Tensor<B, 2>, PPOOutput<B>> for Net<B> {
     }
 }
 
-impl<B: Backend> PPOModel<B> for Net<B> {}
+impl<B: Backend> PPOModel<B> for Net<B> {
+    fn inference(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        let layer_0_output = relu(self.linear.forward(input));
+        softmax(self.linear_actor.forward(layer_0_output.clone()), 1)
+    }
+}
 
 #[allow(unused)]
 const MEMORY_SIZE: usize = 512;

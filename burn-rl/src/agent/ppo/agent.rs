@@ -25,8 +25,7 @@ impl<E: Environment, B: Backend, M: PPOModel<B>> Agent<E> for PPO<E, B, M> {
             self.model
                 .as_ref()
                 .unwrap()
-                .forward(to_state_tensor(*state).unsqueeze())
-                .policies,
+                .inference(to_state_tensor(*state).unsqueeze()),
         )
     }
 }
