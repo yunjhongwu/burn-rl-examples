@@ -5,7 +5,7 @@ use burn::optim::AdamWConfig;
 use burn::tensor::activation::{relu, softmax};
 use burn::tensor::backend::{ADBackend, Backend};
 use burn::tensor::Tensor;
-use burn_rl::agent::{SACActor, SACCritic, SACOptimizer, SACTemperature, SACTrainingConfig, SAC};
+use burn_rl::agent::{SACActor, SACCritic, SACNets, SACOptimizer, SACTrainingConfig, SAC};
 use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
 
 #[derive(Module, Debug)]
@@ -83,10 +83,8 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
 
     let mut actor = Actor::<B>::new(state_dim, DENSE_SIZE, action_dim);
     let mut critic_1 = Critic::<B>::new(state_dim, DENSE_SIZE, action_dim);
-    let mut critic_1_target = critic_1.clone();
     let mut critic_2 = Critic::<B>::new(state_dim, DENSE_SIZE, action_dim);
-    let mut critic_2_target = critic_2.clone();
-    let mut temperature = SACTemperature::<B>::default();
+    let mut nets = SACNets::<B, Actor<B>, Critic<B>>::new(actor, critic_1, critic_2);
 
     let mut agent = MyAgent::default();
 
@@ -114,7 +112,7 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         let mut state = env.state();
 
         while !episode_done {
-            let action = MyAgent::<E, _>::react_with_model(&state, &actor);
+            let action = MyAgent::<E, _>::react_with_model(&state, &nets.actor);
             let snapshot = env.step(action);
 
             episode_reward +=
@@ -129,24 +127,7 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
             );
 
             if config.batch_size < memory.len() {
-                (
-                    actor,
-                    critic_1,
-                    critic_1_target,
-                    critic_2,
-                    critic_2_target,
-                    temperature,
-                ) = agent.train::<MEMORY_SIZE, _>(
-                    actor,
-                    critic_1,
-                    critic_1_target,
-                    critic_2,
-                    critic_2_target,
-                    temperature,
-                    &memory,
-                    &mut optimizer,
-                    &config,
-                );
+                nets = agent.train::<MEMORY_SIZE, _>(nets, &memory, &mut optimizer, &config);
             }
 
             step += 1;
@@ -166,5 +147,5 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         }
     }
 
-    agent.valid(actor)
+    agent.valid(nets.actor)
 }

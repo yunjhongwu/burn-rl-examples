@@ -27,3 +27,26 @@ impl<B: Backend> SACTemperature<B> {
         self.temperature.val()
     }
 }
+
+pub struct SACNets<B: Backend, Actor: SACActor<B>, Critic: SACCritic<B>> {
+    pub actor: Actor,
+    pub critic_1: Critic,
+    pub critic_1_target: Critic,
+
+    pub critic_2: Critic,
+    pub critic_2_target: Critic,
+    pub temperature: SACTemperature<B>,
+}
+
+impl<B: Backend, Actor: SACActor<B>, Critic: SACCritic<B>> SACNets<B, Actor, Critic> {
+    pub fn new(actor: Actor, critic_1: Critic, critic_2: Critic) -> Self {
+        Self {
+            actor,
+            critic_1: critic_1.clone(),
+            critic_1_target: critic_1,
+            critic_2: critic_2.clone(),
+            critic_2_target: critic_2,
+            temperature: SACTemperature::<B>::default(),
+        }
+    }
+}

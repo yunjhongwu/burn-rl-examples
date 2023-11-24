@@ -10,5 +10,5 @@ pub use ppo::config::PPOTrainingConfig;
 pub use ppo::model::{PPOModel, PPOOutput};
 pub use sac::agent::SAC;
 pub use sac::config::SACTrainingConfig;
-pub use sac::model::{SACActor, SACCritic, SACTemperature};
+pub use sac::model::{SACActor, SACCritic, SACNets, SACTemperature};
 pub use sac::optimizer::SACOptimizer;
