@@ -23,11 +23,10 @@ pub struct SAC<E: Environment, B: Backend, Actor: SACActor<B>> {
 }
 
 impl<E: Environment, B: Backend, Actor: SACActor<B>> Agent<E> for SAC<E, B, Actor> {
-    fn react(&self, state: &E::StateType) -> E::ActionType {
+    fn react(&self, state: &E::StateType) -> Option<E::ActionType> {
         sample_action_from_tensor::<E::ActionType, B>(
             self.actor
-                .as_ref()
-                .unwrap()
+                .as_ref()?
                 .infer(to_state_tensor(*state).unsqueeze()),
         )
     }
@@ -43,7 +42,7 @@ impl<E: Environment, B: Backend, Actor: SACActor<B>> SAC<E, B, Actor> {
         }
     }
 
-    pub fn react_with_model(state: &E::StateType, actor: &Actor) -> E::ActionType {
+    pub fn react_with_model(state: &E::StateType, actor: &Actor) -> Option<E::ActionType> {
         sample_action_from_tensor::<E::ActionType, _>(
             actor.forward(to_state_tensor(*state).unsqueeze()),
         )

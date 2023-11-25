@@ -120,37 +120,39 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         let mut state = env.state();
 
         while !episode_done {
-            let action = MyAgent::<E, _>::react_with_model(&state, &nets.actor);
-            let snapshot = env.step(action);
+            if let Some(action) = MyAgent::<E, _>::react_with_model(&state, &nets.actor) {
+                let snapshot = env.step(action);
 
-            episode_reward +=
-                <<E as Environment>::RewardType as Into<ElemType>>::into(snapshot.reward().clone());
-
-            memory.push(
-                state,
-                *snapshot.state(),
-                action,
-                snapshot.reward().clone(),
-                snapshot.done(),
-            );
-
-            if config.batch_size < memory.len() {
-                nets = agent.train::<MEMORY_SIZE, _>(nets, &memory, &mut optimizer, &config);
-            }
-
-            step += 1;
-            episode_duration += 1;
-
-            if snapshot.done() || episode_duration >= E::MAX_STEPS {
-                env.reset();
-                episode_done = true;
-
-                println!(
-                    "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
-                    episode, episode_reward, episode_duration
+                episode_reward += <<E as Environment>::RewardType as Into<ElemType>>::into(
+                    snapshot.reward().clone(),
                 );
-            } else {
-                state = *snapshot.state();
+
+                memory.push(
+                    state,
+                    *snapshot.state(),
+                    action,
+                    snapshot.reward().clone(),
+                    snapshot.done(),
+                );
+
+                if config.batch_size < memory.len() {
+                    nets = agent.train::<MEMORY_SIZE, _>(nets, &memory, &mut optimizer, &config);
+                }
+
+                step += 1;
+                episode_duration += 1;
+
+                if snapshot.done() || episode_duration >= E::MAX_STEPS {
+                    env.reset();
+                    episode_done = true;
+
+                    println!(
+                        "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
+                        episode, episode_reward, episode_duration
+                    );
+                } else {
+                    state = *snapshot.state();
+                }
             }
         }
     }
