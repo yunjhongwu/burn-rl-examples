@@ -52,7 +52,7 @@ pub(crate) fn ref_to_not_done_tensor<B: Backend>(done: &bool) -> Tensor<B, 1> {
     to_not_done_tensor(*done)
 }
 #[allow(unused)]
-pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
+pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B, 2>) -> Option<A> {
     let prob = output
         .to_data()
         .value
@@ -61,10 +61,10 @@ pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B,
         .collect::<Vec<_>>()
         .to_vec();
 
-    let dist = WeightedIndex::new(prob).unwrap();
+    let dist = WeightedIndex::new(prob).ok()?;
 
     let mut rng = thread_rng();
-    (dist.sample(&mut rng) as u32).into()
+    Some((dist.sample(&mut rng) as u32).into())
 }
 
 pub(crate) fn get_elem<B: Backend, const D: usize>(

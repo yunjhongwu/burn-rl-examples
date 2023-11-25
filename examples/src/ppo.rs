@@ -78,22 +78,23 @@ pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) 
         env.reset();
         while !episode_done {
             let state = env.state();
-            let action = MyAgent::<E, _>::react_with_model(&state, &model);
-            let snapshot = env.step(action);
+            if let Some(action) = MyAgent::<E, _>::react_with_model(&state, &model) {
+                let snapshot = env.step(action);
+                episode_reward += <<E as Environment>::RewardType as Into<ElemType>>::into(
+                    snapshot.reward().clone(),
+                );
 
-            episode_reward +=
-                <<E as Environment>::RewardType as Into<ElemType>>::into(snapshot.reward().clone());
+                memory.push(
+                    state,
+                    *snapshot.state(),
+                    action,
+                    snapshot.reward().clone(),
+                    snapshot.done(),
+                );
 
-            memory.push(
-                state,
-                *snapshot.state(),
-                action,
-                snapshot.reward().clone(),
-                snapshot.done(),
-            );
-
-            episode_duration += 1;
-            episode_done = snapshot.done() || episode_duration >= E::MAX_STEPS;
+                episode_duration += 1;
+                episode_done = snapshot.done() || episode_duration >= E::MAX_STEPS;
+            }
         }
         println!(
             "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",

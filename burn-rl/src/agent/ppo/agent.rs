@@ -20,11 +20,10 @@ pub struct PPO<E: Environment, B: Backend, M: PPOModel<B>> {
 }
 
 impl<E: Environment, B: Backend, M: PPOModel<B>> Agent<E> for PPO<E, B, M> {
-    fn react(&self, state: &E::StateType) -> E::ActionType {
+    fn react(&self, state: &E::StateType) -> Option<E::ActionType> {
         sample_action_from_tensor::<E::ActionType, B>(
             self.model
-                .as_ref()
-                .unwrap()
+                .as_ref()?
                 .infer(to_state_tensor(*state).unsqueeze()),
         )
     }
@@ -40,7 +39,7 @@ impl<E: Environment, B: Backend, M: PPOModel<B>> PPO<E, B, M> {
         }
     }
 
-    pub fn react_with_model(state: &E::StateType, model: &M) -> E::ActionType {
+    pub fn react_with_model(state: &E::StateType, model: &M) -> Option<E::ActionType> {
         sample_action_from_tensor::<E::ActionType, _>(
             model.forward(to_state_tensor(*state).unsqueeze()).policies,
         )
@@ -77,68 +76,74 @@ impl<E: Environment, B: ADBackend, M: PPOModel<B> + ADModule<B>> PPO<E, B, M> {
         old_polices = old_polices.detach();
         old_values = old_values.detach();
 
-        let GAEOutput {
+        if let Some(GAEOutput {
             expected_returns,
             advantages,
-        } = get_gae(
+        }) = get_gae(
             old_values,
             get_batch(memory.rewards(), &memory_indices, ref_to_reward_tensor),
             get_batch(memory.dones(), &memory_indices, ref_to_not_done_tensor),
             config.gamma,
             config.lambda,
-        );
+        ) {
+            for _ in 0..config.epochs {
+                for _ in 0..(memory.len() / config.batch_size) {
+                    let sample_indices = sample_indices(memory_indices.clone(), config.batch_size);
 
-        for _ in 0..config.epochs {
-            for _ in 0..(memory.len() / config.batch_size) {
-                let sample_indices = sample_indices(memory_indices.clone(), config.batch_size);
+                    let sample_indices_tensor = Tensor::from_ints(
+                        sample_indices
+                            .iter()
+                            .map(|x| *x as i32)
+                            .collect::<Vec<_>>()
+                            .as_slice(),
+                    );
 
-                let sample_indices_tensor = Tensor::from_ints(
-                    sample_indices
-                        .iter()
-                        .map(|x| *x as i32)
-                        .collect::<Vec<_>>()
-                        .as_slice(),
-                );
+                    let state_batch =
+                        get_batch(memory.states(), &sample_indices, ref_to_state_tensor);
+                    let action_batch =
+                        get_batch(memory.actions(), &sample_indices, ref_to_action_tensor);
+                    let old_policy_batch =
+                        old_polices.clone().select(0, sample_indices_tensor.clone());
+                    let advantage_batch =
+                        advantages.clone().select(0, sample_indices_tensor.clone());
+                    let expected_return_batch = expected_returns
+                        .clone()
+                        .select(0, sample_indices_tensor)
+                        .detach();
 
-                let state_batch = get_batch(memory.states(), &sample_indices, ref_to_state_tensor);
-                let action_batch =
-                    get_batch(memory.actions(), &sample_indices, ref_to_action_tensor);
-                let old_policy_batch = old_polices.clone().select(0, sample_indices_tensor.clone());
-                let advantage_batch = advantages.clone().select(0, sample_indices_tensor.clone());
-                let expected_return_batch = expected_returns
-                    .clone()
-                    .select(0, sample_indices_tensor)
-                    .detach();
+                    let PPOOutput {
+                        policies: policy_batch,
+                        values: value_batch,
+                    } = policy_net.forward(state_batch);
 
-                let PPOOutput {
-                    policies: policy_batch,
-                    values: value_batch,
-                } = policy_net.forward(state_batch);
+                    let ratios = policy_batch
+                        .clone()
+                        .div(old_policy_batch)
+                        .gather(1, action_batch);
+                    let clipped_ratios = ratios
+                        .clone()
+                        .clamp(1.0 - config.epsilon_clip, 1.0 + config.epsilon_clip);
 
-                let ratios = policy_batch
-                    .clone()
-                    .div(old_policy_batch)
-                    .gather(1, action_batch);
-                let clipped_ratios = ratios
-                    .clone()
-                    .clamp(1.0 - config.epsilon_clip, 1.0 + config.epsilon_clip);
+                    let actor_loss = -elementwise_min(
+                        ratios * advantage_batch.clone(),
+                        clipped_ratios * advantage_batch,
+                    )
+                    .sum();
+                    let critic_loss = MSELoss::default().forward(
+                        expected_return_batch,
+                        value_batch,
+                        Reduction::Sum,
+                    );
+                    let policy_negative_entropy = -(policy_batch.clone().log() * policy_batch)
+                        .sum_dim(1)
+                        .mean();
 
-                let actor_loss = -elementwise_min(
-                    ratios * advantage_batch.clone(),
-                    clipped_ratios * advantage_batch,
-                )
-                .sum();
-                let critic_loss =
-                    MSELoss::default().forward(expected_return_batch, value_batch, Reduction::Sum);
-                let policy_negative_entropy = -(policy_batch.clone().log() * policy_batch)
-                    .sum_dim(1)
-                    .mean();
-
-                let loss = actor_loss
-                    + critic_loss.mul_scalar(config.critic_weight)
-                    + policy_negative_entropy.mul_scalar(config.entropy_weight);
-                policy_net =
-                    update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
+                    let loss = actor_loss
+                        + critic_loss.mul_scalar(config.critic_weight)
+                        + policy_negative_entropy.mul_scalar(config.entropy_weight);
+                    policy_net =
+                        update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
+                }
             }
         }
         policy_net
@@ -172,7 +177,7 @@ pub(crate) fn get_gae<B: Backend>(
     not_dones: Tensor<B, 2>,
     gamma: ElemType,
     lambda: ElemType,
-) -> GAEOutput<B> {
+) -> Option<GAEOutput<B>> {
     let mut returns = vec![0.0 as ElemType; rewards.shape().num_elements()];
     let mut advantages = returns.clone();
 
@@ -180,11 +185,11 @@ pub(crate) fn get_gae<B: Backend>(
     let mut running_advantage: ElemType = 0.0;
 
     for i in (0..rewards.shape().num_elements()).rev() {
-        let reward = get_elem(i, &rewards).unwrap();
-        let not_done = get_elem(i, &not_dones).unwrap();
+        let reward = get_elem(i, &rewards)?;
+        let not_done = get_elem(i, &not_dones)?;
 
         running_return = reward + gamma * running_return * not_done;
-        running_advantage = reward - get_elem(i, &values).unwrap()
+        running_advantage = reward - get_elem(i, &values)?
             + gamma
                 * not_done
                 * (get_elem(i + 1, &values).unwrap_or(0.0) + lambda * running_advantage);
@@ -193,8 +198,8 @@ pub(crate) fn get_gae<B: Backend>(
         advantages[i] = running_advantage;
     }
 
-    GAEOutput::new(
+    Some(GAEOutput::new(
         Tensor::from_floats(returns.as_slice()).reshape([returns.len(), 1]),
         Tensor::from_floats(advantages.as_slice()).reshape([advantages.len(), 1]),
-    )
+    ))
 }

@@ -21,11 +21,11 @@ pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
 }
 
 impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
-    fn react(&self, state: &E::StateType) -> E::ActionType {
-        convert_tenor_to_action::<E::ActionType, B>(
+    fn react(&self, state: &E::StateType) -> Option<E::ActionType> {
+        Some(convert_tenor_to_action::<E::ActionType, B>(
             self.target_net
                 .infer(ref_to_state_tensor(state).unsqueeze()),
-        )
+        ))
     }
 }
 
