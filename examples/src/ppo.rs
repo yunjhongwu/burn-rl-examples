@@ -2,7 +2,7 @@ use burn::module::Module;
 use burn::nn::{Initializer, Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::{relu, softmax};
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::Tensor;
 use burn_rl::agent::{PPOModel, PPOOutput, PPOTrainingConfig, PPO};
 use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
@@ -55,7 +55,10 @@ const DENSE_SIZE: usize = 128;
 type MyAgent<E, B> = PPO<E, B, Net<B>>;
 
 #[allow(unused)]
-pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
+pub fn run<E: Environment, B: AutodiffBackend>(
+    num_episodes: usize,
+    visualized: bool,
+) -> impl Agent<E> {
     let mut env = E::new(visualized);
 
     let mut model = Net::<B>::new(

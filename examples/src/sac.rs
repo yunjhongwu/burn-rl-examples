@@ -3,7 +3,7 @@ use burn::module::Module;
 use burn::nn::{Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::{relu, softmax};
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::Tensor;
 use burn_rl::agent::{SACActor, SACCritic, SACNets, SACOptimizer, SACTrainingConfig, SAC};
 use burn_rl::base::{Action, Agent, ElemType, Environment, Memory, Model, State};
@@ -84,7 +84,10 @@ const DENSE_SIZE: usize = 32;
 type MyAgent<E, B> = SAC<E, B, Actor<B>>;
 
 #[allow(unused)]
-pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
+pub fn run<E: Environment, B: AutodiffBackend>(
+    num_episodes: usize,
+    visualized: bool,
+) -> impl Agent<E> {
     let mut env = E::new(visualized);
     let state_dim = <<E as Environment>::StateType as State>::size();
     let action_dim = <<E as Environment>::ActionType as Action>::size();

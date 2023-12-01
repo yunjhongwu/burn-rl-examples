@@ -3,7 +3,7 @@ use burn::module::Module;
 use burn::nn::{Linear, LinearConfig};
 use burn::optim::AdamWConfig;
 use burn::tensor::activation::relu;
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::Tensor;
 use burn_rl::agent::DQN;
 use burn_rl::agent::{DQNModel, DQNTrainingConfig};
@@ -58,7 +58,10 @@ const EPS_END: f64 = 0.05;
 type MyAgent<E, B> = DQN<E, B, Net<B>>;
 
 #[allow(unused)]
-pub fn run<E: Environment, B: ADBackend>(num_episodes: usize, visualized: bool) -> impl Agent<E> {
+pub fn run<E: Environment, B: AutodiffBackend>(
+    num_episodes: usize,
+    visualized: bool,
+) -> impl Agent<E> {
     let mut env = E::new(visualized);
 
     let model = Net::<B>::new(

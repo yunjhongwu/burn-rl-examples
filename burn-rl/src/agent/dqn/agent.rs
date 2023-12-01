@@ -6,10 +6,10 @@ use crate::utils::{
     convert_tenor_to_action, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
     ref_to_state_tensor, to_state_tensor, update_parameters,
 };
-use burn::module::ADModule;
+use burn::module::AutodiffModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
 
@@ -44,7 +44,7 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> DQN<E, B, M> {
     }
 }
 
-impl<E: Environment, B: ADBackend, M: DQNModel<B>> DQN<E, B, M> {
+impl<E: Environment, B: AutodiffBackend, M: DQNModel<B>> DQN<E, B, M> {
     pub fn react_with_exploration(
         policy_net: &M,
         state: E::StateType,
@@ -60,7 +60,7 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B>> DQN<E, B, M> {
     }
 }
 
-impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
+impl<E: Environment, B: AutodiffBackend, M: DQNModel<B> + AutodiffModule<B>> DQN<E, B, M> {
     pub fn train<const CAP: usize>(
         &mut self,
         mut policy_net: M,
@@ -102,7 +102,7 @@ impl<E: Environment, B: ADBackend, M: DQNModel<B> + ADModule<B>> DQN<E, B, M> {
 
     pub fn valid(&self) -> DQN<E, B::InnerBackend, M::InnerModule>
     where
-        <M as ADModule<B>>::InnerModule: DQNModel<<B as ADBackend>::InnerBackend>,
+        <M as AutodiffModule<B>>::InnerModule: DQNModel<<B as AutodiffBackend>::InnerBackend>,
     {
         DQN::<E, B::InnerBackend, M::InnerModule>::new(self.target_net.clone().valid())
     }

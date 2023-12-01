@@ -120,7 +120,7 @@ mod tests {
     use crate::utils::{
         ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor, ref_to_state_tensor,
     };
-    use burn::backend::NdArrayBackend;
+    use burn::backend::NdArray;
     use burn::tensor::backend::Backend;
     use burn::tensor::{Int, Shape, Tensor};
 
@@ -170,7 +170,7 @@ mod tests {
     #[derive(Debug, Copy, Clone)]
     struct TestEnv {}
 
-    type TestBackend = NdArrayBackend<ElemType>;
+    type TestBackend = NdArray<ElemType>;
 
     impl Environment for TestEnv {
         type StateType = TestState;

@@ -1,7 +1,7 @@
 use crate::base::{Action, ElemType, State};
-use burn::module::ADModule;
+use burn::module::AutodiffModule;
 use burn::optim::{GradientsParams, Optimizer};
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::{ElementConversion, Int, Tensor};
 use burn::LearningRate;
 use rand::distributions::{Distribution, WeightedIndex};
@@ -82,7 +82,7 @@ pub(crate) fn elementwise_min<B: Backend, const D: usize>(
     lhs.clone().mask_where(rhs_lower, rhs.clone())
 }
 
-pub(crate) fn update_parameters<B: ADBackend, M: ADModule<B>>(
+pub(crate) fn update_parameters<B: AutodiffBackend, M: AutodiffModule<B>>(
     loss: Tensor<B, 1>,
     module: M,
     optimizer: &mut impl Optimizer<M, B>,
