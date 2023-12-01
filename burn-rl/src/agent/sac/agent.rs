@@ -8,10 +8,10 @@ use crate::utils::{
     ref_to_reward_tensor, ref_to_state_tensor, sample_action_from_tensor, to_state_tensor,
     update_parameters,
 };
-use burn::module::{ADModule, Module};
+use burn::module::{AutodiffModule, Module};
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
 
@@ -64,7 +64,7 @@ impl<E: Environment, B: Backend, Actor: SACActor<B>> Default for SAC<E, B, Actor
     }
 }
 
-impl<E: Environment, B: ADBackend, Actor: SACActor<B>> SAC<E, B, Actor> {
+impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B>> SAC<E, B, Actor> {
     pub fn react_with_exploration(
         policy_net: &Actor,
         state: E::StateType,
@@ -80,9 +80,9 @@ impl<E: Environment, B: ADBackend, Actor: SACActor<B>> SAC<E, B, Actor> {
     }
 }
 
-impl<E: Environment, B: ADBackend, Actor: SACActor<B> + ADModule<B>> SAC<E, B, Actor> {
+impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>> SAC<E, B, Actor> {
     #[allow(clippy::too_many_arguments)]
-    pub fn train<const CAP: usize, Critic: SACCritic<B> + ADModule<B>>(
+    pub fn train<const CAP: usize, Critic: SACCritic<B> + AutodiffModule<B>>(
         &mut self,
         mut nets: SACNets<B, Actor, Critic>,
         memory: &Memory<E, B, CAP>,
@@ -184,7 +184,7 @@ impl<E: Environment, B: ADBackend, Actor: SACActor<B> + ADModule<B>> SAC<E, B, A
 
     pub fn valid(&self, actor: Actor) -> SAC<E, B::InnerBackend, Actor::InnerModule>
     where
-        <Actor as ADModule<B>>::InnerModule: SACActor<<B as ADBackend>::InnerBackend>,
+        <Actor as AutodiffModule<B>>::InnerModule: SACActor<<B as AutodiffBackend>::InnerBackend>,
     {
         SAC::<E, B::InnerBackend, Actor::InnerModule>::new(actor.valid())
     }

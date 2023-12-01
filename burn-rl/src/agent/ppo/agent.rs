@@ -5,10 +5,10 @@ use crate::utils::{
     elementwise_min, get_elem, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
     ref_to_state_tensor, sample_action_from_tensor, to_state_tensor, update_parameters,
 };
-use burn::module::ADModule;
+use burn::module::AutodiffModule;
 use burn::nn::loss::{MSELoss, Reduction};
 use burn::optim::Optimizer;
-use burn::tensor::backend::{ADBackend, Backend};
+use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::Tensor;
 use std::marker::PhantomData;
 
@@ -57,7 +57,7 @@ impl<E: Environment, B: Backend, M: PPOModel<B>> Default for PPO<E, B, M> {
     }
 }
 
-impl<E: Environment, B: ADBackend, M: PPOModel<B> + ADModule<B>> PPO<E, B, M> {
+impl<E: Environment, B: AutodiffBackend, M: PPOModel<B> + AutodiffModule<B>> PPO<E, B, M> {
     pub fn train<const CAP: usize>(
         mut policy_net: M,
         memory: &Memory<E, B, CAP>,
@@ -151,7 +151,7 @@ impl<E: Environment, B: ADBackend, M: PPOModel<B> + ADModule<B>> PPO<E, B, M> {
 
     pub fn valid(&self, model: M) -> PPO<E, B::InnerBackend, M::InnerModule>
     where
-        <M as ADModule<B>>::InnerModule: PPOModel<<B as ADBackend>::InnerBackend>,
+        <M as AutodiffModule<B>>::InnerModule: PPOModel<<B as AutodiffBackend>::InnerBackend>,
     {
         PPO::<E, B::InnerBackend, M::InnerModule>::new(model.valid())
     }

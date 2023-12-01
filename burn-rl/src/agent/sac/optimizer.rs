@@ -1,14 +1,14 @@
 use crate::agent::sac::model::SACTemperature;
 use crate::agent::{SACActor, SACCritic};
-use burn::module::ADModule;
+use burn::module::AutodiffModule;
 use burn::optim::Optimizer;
-use burn::tensor::backend::ADBackend;
+use burn::tensor::backend::AutodiffBackend;
 use std::marker::PhantomData;
 
 pub struct SACOptimizer<
-    B: ADBackend,
-    Actor: SACActor<B> + ADModule<B>,
-    Critic: SACCritic<B> + ADModule<B>,
+    B: AutodiffBackend,
+    Actor: SACActor<B> + AutodiffModule<B>,
+    Critic: SACCritic<B> + AutodiffModule<B>,
     OptimActor: Optimizer<Actor, B> + Sized,
     OptimCritic: Optimizer<Critic, B> + Sized,
     OptimTemperature: Optimizer<SACTemperature<B>, B> + Sized,
@@ -23,9 +23,9 @@ pub struct SACOptimizer<
 }
 
 impl<
-        B: ADBackend,
-        Actor: SACActor<B> + ADModule<B>,
-        Critic: SACCritic<B> + ADModule<B>,
+        B: AutodiffBackend,
+        Actor: SACActor<B> + AutodiffModule<B>,
+        Critic: SACCritic<B> + AutodiffModule<B>,
         OptimActor: Optimizer<Actor, B> + Sized,
         OptimCritic: Optimizer<Critic, B> + Sized,
         OptimTemperature: Optimizer<SACTemperature<B>, B> + Sized,

@@ -1,6 +1,6 @@
 use crate::utils::demo_model;
-use burn::backend::NdArrayBackend;
-use burn_autodiff::ADBackendDecorator;
+use burn::backend::NdArray;
+use burn_autodiff::Autodiff;
 use burn_rl::base::ElemType;
 use burn_rl::environment::CartPole;
 
@@ -9,7 +9,7 @@ mod ppo;
 mod sac;
 mod utils;
 
-type Backend = ADBackendDecorator<NdArrayBackend<ElemType>>;
+type Backend = Autodiff<NdArray<ElemType>>;
 type Env = CartPole;
 
 fn main() {

@@ -1,4 +1,4 @@
-use burn::module::{Module, Param};
+use burn::module::Param;
 use burn::nn::Linear;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -26,7 +26,7 @@ fn soft_update_tensor<const N: usize, B: Backend>(
     let this_weight = this.val();
     let new_this_weight = this_weight * (1.0 - tau) + that_weight * tau;
 
-    Param::from(new_this_weight.no_grad())
+    Param::from(new_this_weight.detach())
 }
 
 pub fn soft_update_linear<B: Backend>(this: &mut Linear<B>, that: &Linear<B>, tau: ElemType) {
