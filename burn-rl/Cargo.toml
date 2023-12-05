@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 rand = "0.8.5"
-burn = { version = "0.11.0", features = ["ndarray", "autodiff"] }
-gym-rs = "0.3.0"
+burn = { version = "0.11.1", features = ["ndarray", "autodiff"] }
+gym-rs = { git = "https://github.com/MathisWellmann/gym-rs.git" }
 ringbuffer = "0.15.0"
 serde = { workspace = true }
