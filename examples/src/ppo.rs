@@ -21,13 +21,13 @@ impl<B: Backend> Net<B> {
         Self {
             linear: LinearConfig::new(input_size, dense_size)
                 .with_initializer(initializer.clone())
-                .init(),
+                .init(&Default::default()),
             linear_actor: LinearConfig::new(dense_size, output_size)
                 .with_initializer(initializer.clone())
-                .init(),
+                .init(&Default::default()),
             linear_critic: LinearConfig::new(dense_size, 1)
                 .with_initializer(initializer)
-                .init(),
+                .init(&Default::default()),
         }
     }
 }

@@ -160,7 +160,7 @@ mod tests {
         type Data = [ElemType; 2];
 
         fn to_tensor<B: Backend>(&self) -> Tensor<B, 1> {
-            Tensor::<B, 1>::from_floats(self.data)
+            Tensor::<B, 1>::from_floats(self.data, &Default::default())
         }
         fn size() -> usize {
             1
@@ -217,7 +217,7 @@ mod tests {
         });
         assert_eq!(state_batch.shape(), Shape::new([5, 2]));
         let state_sample = state_batch
-            .select(0, Tensor::from_ints([0, 1]))
+            .select(0, Tensor::from_ints([0, 1], &Default::default()))
             .to_data()
             .value;
         assert_eq!(state_sample[0] * 2.0, state_sample[1]);
@@ -226,7 +226,7 @@ mod tests {
             get_batch(memory.next_states(), &sample_indices, ref_to_state_tensor);
         assert_eq!(next_state_batch.shape(), Shape::new([5, 2]));
         let next_state_sample = next_state_batch
-            .select(0, Tensor::from_ints([0, 1]))
+            .select(0, Tensor::from_ints([0, 1], &Default::default()))
             .to_data()
             .value;
         assert_eq!(next_state_sample[0] * -3.0, next_state_sample[1]);
