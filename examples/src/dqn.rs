@@ -20,9 +20,9 @@ impl<B: Backend> Net<B> {
     #[allow(unused)]
     pub fn new(input_size: usize, dense_size: usize, output_size: usize) -> Self {
         Self {
-            linear_0: LinearConfig::new(input_size, dense_size).init(),
-            linear_1: LinearConfig::new(dense_size, dense_size).init(),
-            linear_2: LinearConfig::new(dense_size, output_size).init(),
+            linear_0: LinearConfig::new(input_size, dense_size).init(&Default::default()),
+            linear_1: LinearConfig::new(dense_size, dense_size).init(&Default::default()),
+            linear_2: LinearConfig::new(dense_size, output_size).init(&Default::default()),
         }
     }
 }

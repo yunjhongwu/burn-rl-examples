@@ -96,6 +96,7 @@ impl<E: Environment, B: AutodiffBackend, M: PPOModel<B> + AutodiffModule<B>> PPO
                             .map(|x| *x as i32)
                             .collect::<Vec<_>>()
                             .as_slice(),
+                        &Default::default(),
                     );
 
                     let state_batch =
@@ -199,7 +200,8 @@ pub(crate) fn get_gae<B: Backend>(
     }
 
     Some(GAEOutput::new(
-        Tensor::from_floats(returns.as_slice()).reshape([returns.len(), 1]),
-        Tensor::from_floats(advantages.as_slice()).reshape([advantages.len(), 1]),
+        Tensor::from_floats(returns.as_slice(), &Default::default()).reshape([returns.len(), 1]),
+        Tensor::from_floats(advantages.as_slice(), &Default::default())
+            .reshape([advantages.len(), 1]),
     ))
 }

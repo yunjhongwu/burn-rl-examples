@@ -28,7 +28,7 @@ pub(crate) fn convert_tenor_to_action<A: Action, B: Backend>(output: Tensor<B, 2
 }
 
 pub(crate) fn to_action_tensor<A: Action, B: Backend>(action: A) -> Tensor<B, 1, Int> {
-    Tensor::<B, 1, Int>::from_ints([action.into() as i32])
+    Tensor::<B, 1, Int>::from_ints([action.into() as i32], &Default::default())
 }
 
 pub(crate) fn ref_to_action_tensor<A: Action, B: Backend>(action: &A) -> Tensor<B, 1, Int> {
@@ -36,7 +36,7 @@ pub(crate) fn ref_to_action_tensor<A: Action, B: Backend>(action: &A) -> Tensor<
 }
 
 pub(crate) fn to_reward_tensor<B: Backend>(reward: impl Into<ElemType> + Clone) -> Tensor<B, 1> {
-    Tensor::from_floats([reward.into()])
+    Tensor::from_floats([reward.into()], &Default::default())
 }
 
 pub(crate) fn ref_to_reward_tensor<B: Backend>(
@@ -45,7 +45,7 @@ pub(crate) fn ref_to_reward_tensor<B: Backend>(
     to_reward_tensor(reward.clone())
 }
 pub(crate) fn to_not_done_tensor<B: Backend>(done: bool) -> Tensor<B, 1> {
-    Tensor::from_floats([if done { 0.0 } else { 1.0 }])
+    Tensor::from_floats([if done { 0.0 } else { 1.0 }], &Default::default())
 }
 
 pub(crate) fn ref_to_not_done_tensor<B: Backend>(done: &bool) -> Tensor<B, 1> {
