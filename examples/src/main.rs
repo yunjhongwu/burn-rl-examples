@@ -1,6 +1,5 @@
 use crate::utils::demo_model;
-use burn::backend::NdArray;
-use burn_autodiff::Autodiff;
+use burn::backend::{Autodiff, NdArray};
 use burn_rl::base::ElemType;
 use burn_rl::environment::CartPole;
 
