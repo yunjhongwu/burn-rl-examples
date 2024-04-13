@@ -180,18 +180,12 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
             config.learning_rate.into(),
         );
 
-        nets.critic_1_target = nets.critic_1_target.map(|net|
-            SACCritic::soft_update(
-                net,
-                &nets.critic_1,
-                config.tau,
-            ));
-        nets.critic_2_target = nets.critic_2_target.map(|net|
-            SACCritic::soft_update(
-                net,
-                &nets.critic_2,
-                config.tau,
-            ));
+        nets.critic_1_target = nets
+            .critic_1_target
+            .map(|net| SACCritic::soft_update(net, &nets.critic_1, config.tau));
+        nets.critic_2_target = nets
+            .critic_2_target
+            .map(|net| SACCritic::soft_update(net, &nets.critic_2, config.tau));
 
         nets
     }

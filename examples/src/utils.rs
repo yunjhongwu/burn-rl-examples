@@ -38,7 +38,12 @@ pub fn soft_update_linear<B: Backend>(
 ) -> Linear<B> {
     let weight = soft_update_tensor(&this.weight, &that.weight, tau, format!("{}.weight", tag));
     let bias = match (&this.bias, &that.bias) {
-        (Some(this_bias), Some(that_bias)) => Some(soft_update_tensor(this_bias, that_bias, tau, format!("{}.bias", tag))),
+        (Some(this_bias), Some(that_bias)) => Some(soft_update_tensor(
+            this_bias,
+            that_bias,
+            tau,
+            format!("{}.bias", tag),
+        )),
         _ => None,
     };
 

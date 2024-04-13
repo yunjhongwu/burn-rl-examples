@@ -17,7 +17,10 @@ pub struct SACTemperature<B: Backend> {
 impl<B: Backend> Default for SACTemperature<B> {
     fn default() -> Self {
         Self {
-            temperature: Param::initialized("temperature".into(), Tensor::zeros([1, 1], &Default::default())),
+            temperature: Param::initialized(
+                "temperature".into(),
+                Tensor::zeros([1, 1], &Default::default()),
+            ),
         }
     }
 }
