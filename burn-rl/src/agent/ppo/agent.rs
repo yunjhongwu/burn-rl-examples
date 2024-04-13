@@ -6,7 +6,7 @@ use crate::utils::{
     ref_to_state_tensor, sample_action_from_tensor, to_state_tensor, update_parameters,
 };
 use burn::module::AutodiffModule;
-use burn::nn::loss::{MSELoss, Reduction};
+use burn::nn::loss::{MseLoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::Tensor;
@@ -130,7 +130,7 @@ impl<E: Environment, B: AutodiffBackend, M: PPOModel<B> + AutodiffModule<B>> PPO
                         clipped_ratios * advantage_batch,
                     )
                     .sum();
-                    let critic_loss = MSELoss::default().forward(
+                    let critic_loss = MseLoss::default().forward(
                         expected_return_batch,
                         value_batch,
                         Reduction::Sum,
