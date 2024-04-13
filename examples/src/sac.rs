@@ -55,6 +55,10 @@ impl<B: Backend> Critic<B> {
             linear_2: LinearConfig::new(dense_size, output_size).init(&Default::default()),
         }
     }
+
+    fn consume(self) -> (Linear<B>, Linear<B>, Linear<B>) {
+        (self.linear_0, self.linear_1, self.linear_2)
+    }
 }
 
 impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Critic<B> {
@@ -71,10 +75,14 @@ impl<B: Backend> Model<B, Tensor<B, 2>, Tensor<B, 2>> for Critic<B> {
 }
 
 impl<B: Backend> SACCritic<B> for Critic<B> {
-    fn soft_update(this: &mut Self, that: &Self, tau: ElemType) {
-        soft_update_linear(&mut this.linear_0, &that.linear_0, tau);
-        soft_update_linear(&mut this.linear_1, &that.linear_1, tau);
-        soft_update_linear(&mut this.linear_2, &that.linear_2, tau);
+    fn soft_update(this: Self, that: &Self, tau: ElemType) -> Self {
+        let (linear_0, linear_1, linear_2) = this.consume();
+
+        Self {
+            linear_0: soft_update_linear(linear_0, &that.linear_0, tau, "linear_0"),
+            linear_1: soft_update_linear(linear_1, &that.linear_1, tau, "linear_1"),
+            linear_2: soft_update_linear(linear_2, &that.linear_2, tau, "linear_2"),
+        }
     }
 }
 

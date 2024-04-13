@@ -7,14 +7,14 @@ use crate::utils::{
     ref_to_state_tensor, to_state_tensor, update_parameters,
 };
 use burn::module::AutodiffModule;
-use burn::nn::loss::{MSELoss, Reduction};
+use burn::nn::loss::{MseLoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{AutodiffBackend, Backend};
 use rand::random;
 use std::marker::PhantomData;
 
 pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
-    target_net: M,
+    target_net: Option<M>,
     state: PhantomData<E::StateType>,
     action: PhantomData<E::ActionType>,
     backend: PhantomData<B>,
@@ -24,6 +24,7 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
     fn react(&self, state: &E::StateType) -> Option<E::ActionType> {
         Some(convert_tenor_to_action::<E::ActionType, B>(
             self.target_net
+                .as_ref()?
                 .infer(ref_to_state_tensor(state).unsqueeze()),
         ))
     }
@@ -32,14 +33,14 @@ impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
 impl<E: Environment, B: Backend, M: DQNModel<B>> DQN<E, B, M> {
     pub fn new(model: M) -> Self {
         Self {
-            target_net: model,
+            target_net: Some(model),
             state: PhantomData,
             action: PhantomData,
             backend: PhantomData,
         }
     }
 
-    pub fn model(&self) -> &M {
+    pub fn model(&self) -> &Option<M> {
         &self.target_net
     }
 }
@@ -75,11 +76,8 @@ impl<E: Environment, B: AutodiffBackend, M: DQNModel<B> + AutodiffModule<B>> DQN
 
         let next_state_batch =
             get_batch(memory.next_states(), &sample_indices, ref_to_state_tensor);
-        let next_state_values = self
-            .target_net
-            .forward(next_state_batch)
-            .max_dim(1)
-            .detach();
+        let target_net = self.target_net.take().unwrap();
+        let next_state_values = target_net.forward(next_state_batch).max_dim(1).detach();
 
         let not_done_batch = get_batch(memory.dones(), &sample_indices, ref_to_not_done_tensor);
         let reward_batch = get_batch(memory.rewards(), &sample_indices, ref_to_reward_tensor);
@@ -87,7 +85,7 @@ impl<E: Environment, B: AutodiffBackend, M: DQNModel<B> + AutodiffModule<B>> DQN
         let expected_state_action_values =
             (next_state_values * not_done_batch).mul_scalar(config.gamma) + reward_batch;
 
-        let loss = MSELoss::default().forward(
+        let loss = MseLoss::default().forward(
             state_action_values,
             expected_state_action_values,
             Reduction::Mean,
@@ -95,15 +93,19 @@ impl<E: Environment, B: AutodiffBackend, M: DQNModel<B> + AutodiffModule<B>> DQN
 
         policy_net = update_parameters(loss, policy_net, optimizer, config.learning_rate.into());
 
-        <M as DQNModel<B>>::soft_update(&mut self.target_net, &policy_net, config.tau);
+        self.target_net = Some(<M as DQNModel<B>>::soft_update(
+            target_net,
+            &policy_net,
+            config.tau,
+        ));
 
         policy_net
     }
 
-    pub fn valid(&self) -> DQN<E, B::InnerBackend, M::InnerModule>
+    pub fn valid(mut self) -> DQN<E, B::InnerBackend, M::InnerModule>
     where
         <M as AutodiffModule<B>>::InnerModule: DQNModel<<B as AutodiffBackend>::InnerBackend>,
     {
-        DQN::<E, B::InnerBackend, M::InnerModule>::new(self.target_net.clone().valid())
+        DQN::<E, B::InnerBackend, M::InnerModule>::new(self.target_net.take().unwrap().valid())
     }
 }

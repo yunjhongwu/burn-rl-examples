@@ -9,7 +9,7 @@ use crate::utils::{
     update_parameters,
 };
 use burn::module::{AutodiffModule, Module};
-use burn::nn::loss::{MSELoss, Reduction};
+use burn::nn::loss::{MseLoss, Reduction};
 use burn::optim::Optimizer;
 use burn::tensor::backend::{AutodiffBackend, Backend};
 use rand::random;
@@ -142,11 +142,15 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
 
         let q1_target_next = nets
             .critic_1_target
+            .as_ref()
+            .expect("Critic 1 target is not initialized")
             .clone()
             .no_grad()
             .forward(next_state_batch.clone());
         let q2_target_next = nets
             .critic_2_target
+            .as_ref()
+            .expect("Critic 2 target is not initialized")
             .clone()
             .no_grad()
             .forward(next_state_batch);
@@ -159,7 +163,7 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
             .critic_1
             .forward(state_batch.clone())
             .gather(1, action_batch.clone());
-        let critic_1_loss = MSELoss::default().forward(q_target.clone(), q1, Reduction::Sum);
+        let critic_1_loss = MseLoss::default().forward(q_target.clone(), q1, Reduction::Sum);
         nets.critic_1 = update_parameters(
             critic_1_loss,
             nets.critic_1,
@@ -168,7 +172,7 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
         );
 
         let q2 = nets.critic_2.forward(state_batch).gather(1, action_batch);
-        let critic_2_loss = MSELoss::default().forward(q_target, q2, Reduction::Sum);
+        let critic_2_loss = MseLoss::default().forward(q_target, q2, Reduction::Sum);
         nets.critic_2 = update_parameters(
             critic_2_loss,
             nets.critic_2,
@@ -176,8 +180,18 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
             config.learning_rate.into(),
         );
 
-        SACCritic::soft_update(&mut nets.critic_1_target, &nets.critic_1, config.tau);
-        SACCritic::soft_update(&mut nets.critic_2_target, &nets.critic_2, config.tau);
+        nets.critic_1_target = nets.critic_1_target.map(|net|
+            SACCritic::soft_update(
+                net,
+                &nets.critic_1,
+                config.tau,
+            ));
+        nets.critic_2_target = nets.critic_2_target.map(|net|
+            SACCritic::soft_update(
+                net,
+                &nets.critic_2,
+                config.tau,
+            ));
 
         nets
     }

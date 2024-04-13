@@ -1,4 +1,4 @@
-use burn::module::Param;
+use burn::module::{Param, ParamId};
 use burn::nn::Linear;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -21,17 +21,26 @@ fn soft_update_tensor<const N: usize, B: Backend>(
     this: &Param<Tensor<B, N>>,
     that: &Param<Tensor<B, N>>,
     tau: ElemType,
+    tag: impl Into<ParamId>,
 ) -> Param<Tensor<B, N>> {
     let that_weight = that.val();
     let this_weight = this.val();
-    let new_this_weight = this_weight * (1.0 - tau) + that_weight * tau;
+    let new_weight = this_weight * (1.0 - tau) + that_weight * tau;
 
-    Param::from(new_this_weight.detach())
+    Param::initialized(tag.into(), new_weight)
 }
 
-pub fn soft_update_linear<B: Backend>(this: &mut Linear<B>, that: &Linear<B>, tau: ElemType) {
-    this.weight = soft_update_tensor(&this.weight, &that.weight, tau);
-    if let (Some(this_bias), Some(that_bias)) = (&mut this.bias, &that.bias) {
-        this.bias = Some(soft_update_tensor(this_bias, that_bias, tau));
-    }
+pub fn soft_update_linear<B: Backend>(
+    this: Linear<B>,
+    that: &Linear<B>,
+    tau: ElemType,
+    tag: &str,
+) -> Linear<B> {
+    let weight = soft_update_tensor(&this.weight, &that.weight, tau, format!("{}.weight", tag));
+    let bias = match (&this.bias, &that.bias) {
+        (Some(this_bias), Some(that_bias)) => Some(soft_update_tensor(this_bias, that_bias, tau, format!("{}.bias", tag))),
+        _ => None,
+    };
+
+    Linear::<B> { weight, bias }
 }

@@ -12,7 +12,7 @@ type Backend = Autodiff<NdArray<ElemType>>;
 type Env = CartPole;
 
 fn main() {
-    let agent = sac::run::<Env, Backend>(512, false);
+    let agent = dqn::run::<Env, Backend>(512, false);
 
     demo_model::<Env>(agent);
 }
