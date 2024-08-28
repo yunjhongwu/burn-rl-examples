@@ -131,7 +131,7 @@ mod tests {
 
     impl From<u32> for TestAction {
         fn from(value: u32) -> Self {
-            value.into()
+            Self { data: value as i32 }
         }
     }
 
@@ -216,34 +216,37 @@ mod tests {
             t.to_tensor::<TestBackend>()
         });
         assert_eq!(state_batch.shape(), Shape::new([5, 2]));
-        let state_sample = state_batch
+        let data = state_batch
             .select(0, Tensor::from_ints([0, 1], &Default::default()))
-            .to_data()
-            .value;
+            .to_data();
+        let state_sample = data.as_slice::<f32>().unwrap();
         assert_eq!(state_sample[0] * 2.0, state_sample[1]);
 
         let next_state_batch: Tensor<TestBackend, 2> =
             get_batch(memory.next_states(), &sample_indices, ref_to_state_tensor);
         assert_eq!(next_state_batch.shape(), Shape::new([5, 2]));
-        let next_state_sample = next_state_batch
+        let data = next_state_batch
             .select(0, Tensor::from_ints([0, 1], &Default::default()))
-            .to_data()
-            .value;
+            .to_data();
+        let next_state_sample = data.as_slice::<f32>().unwrap();
         assert_eq!(next_state_sample[0] * -3.0, next_state_sample[1]);
 
         let action_batch: Tensor<TestBackend, 2, Int> =
             get_batch(memory.actions(), &sample_indices, ref_to_action_tensor);
         assert_eq!(action_batch.shape(), Shape::new([5, 1]));
-        assert_eq!(action_batch.to_data().value[0], state_sample[0] as i64);
+        assert_eq!(
+            action_batch.to_data().as_slice::<i64>().unwrap()[0],
+            state_sample[0] as i64
+        );
 
         let reward_batch: Tensor<TestBackend, 2> =
             get_batch(memory.rewards(), &sample_indices, ref_to_reward_tensor);
         assert_eq!(reward_batch.shape(), Shape::new([5, 1]));
-        assert_eq!(reward_batch.to_data().value[0], 0.1);
+        assert_eq!(reward_batch.to_data().as_slice::<f32>().unwrap()[0], 0.1);
 
         let not_done_batch: Tensor<TestBackend, 2> =
             get_batch(memory.dones(), &sample_indices, ref_to_not_done_tensor);
         assert_eq!(not_done_batch.shape(), Shape::new([5, 1]));
-        assert_eq!(not_done_batch.to_data().value[0], 1.0);
+        assert_eq!(not_done_batch.to_data().as_slice::<f32>().unwrap()[0], 1.0);
     }
 }

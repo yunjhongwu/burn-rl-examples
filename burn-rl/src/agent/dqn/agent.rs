@@ -85,7 +85,7 @@ impl<E: Environment, B: AutodiffBackend, M: DQNModel<B> + AutodiffModule<B>> DQN
         let expected_state_action_values =
             (next_state_values * not_done_batch).mul_scalar(config.gamma) + reward_batch;
 
-        let loss = MseLoss::default().forward(
+        let loss = MseLoss.forward(
             state_action_values,
             expected_state_action_values,
             Reduction::Mean,

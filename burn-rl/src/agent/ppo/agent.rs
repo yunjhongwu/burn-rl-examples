@@ -130,11 +130,8 @@ impl<E: Environment, B: AutodiffBackend, M: PPOModel<B> + AutodiffModule<B>> PPO
                         clipped_ratios * advantage_batch,
                     )
                     .sum();
-                    let critic_loss = MseLoss::default().forward(
-                        expected_return_batch,
-                        value_batch,
-                        Reduction::Sum,
-                    );
+                    let critic_loss =
+                        MseLoss.forward(expected_return_batch, value_batch, Reduction::Sum);
                     let policy_negative_entropy = -(policy_batch.clone().log() * policy_batch)
                         .sum_dim(1)
                         .mean();
@@ -200,8 +197,9 @@ pub(crate) fn get_gae<B: Backend>(
     }
 
     Some(GAEOutput::new(
-        Tensor::from_floats(returns.as_slice(), &Default::default()).reshape([returns.len(), 1]),
-        Tensor::from_floats(advantages.as_slice(), &Default::default())
+        Tensor::<B, 2>::from_floats(returns.as_slice(), &Default::default())
+            .reshape([returns.len(), 1]),
+        Tensor::<B, 2>::from_floats(advantages.as_slice(), &Default::default())
             .reshape([advantages.len(), 1]),
     ))
 }

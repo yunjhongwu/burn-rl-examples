@@ -2,7 +2,7 @@ use crate::base::{Action, ElemType, State};
 use burn::module::AutodiffModule;
 use burn::optim::{GradientsParams, Optimizer};
 use burn::tensor::backend::{AutodiffBackend, Backend};
-use burn::tensor::{ElementConversion, Int, Tensor};
+use burn::tensor::{Int, Tensor};
 use burn::LearningRate;
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::thread_rng;
@@ -16,15 +16,7 @@ pub(crate) fn ref_to_state_tensor<S: State, B: Backend>(state: &S) -> Tensor<B, 
 }
 
 pub(crate) fn convert_tenor_to_action<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
-    unsafe {
-        output
-            .argmax(1)
-            .to_data()
-            .value
-            .get_unchecked(0)
-            .elem::<u32>()
-            .into()
-    }
+    (output.argmax(1).to_data().as_slice::<i64>().unwrap()[0] as u32).into()
 }
 
 pub(crate) fn to_action_tensor<A: Action, B: Backend>(action: A) -> Tensor<B, 1, Int> {
@@ -53,13 +45,7 @@ pub(crate) fn ref_to_not_done_tensor<B: Backend>(done: &bool) -> Tensor<B, 1> {
 }
 #[allow(unused)]
 pub(crate) fn sample_action_from_tensor<A: Action, B: Backend>(output: Tensor<B, 2>) -> Option<A> {
-    let prob = output
-        .to_data()
-        .value
-        .iter()
-        .map(|x| x.elem::<ElemType>())
-        .collect::<Vec<_>>()
-        .to_vec();
+    let prob = output.to_data().to_vec::<ElemType>().ok()?;
 
     let dist = WeightedIndex::new(prob).ok()?;
 
@@ -71,7 +57,7 @@ pub(crate) fn get_elem<B: Backend, const D: usize>(
     i: usize,
     tensor: &Tensor<B, D>,
 ) -> Option<ElemType> {
-    tensor.to_data().value.get(i).map(|x| x.elem::<ElemType>())
+    tensor.to_data().as_slice().ok()?.get(i).copied()
 }
 
 pub(crate) fn elementwise_min<B: Backend, const D: usize>(

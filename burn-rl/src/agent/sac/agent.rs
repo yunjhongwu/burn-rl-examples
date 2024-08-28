@@ -163,7 +163,7 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
             .critic_1
             .forward(state_batch.clone())
             .gather(1, action_batch.clone());
-        let critic_1_loss = MseLoss::default().forward(q_target.clone(), q1, Reduction::Sum);
+        let critic_1_loss = MseLoss.forward(q_target.clone(), q1, Reduction::Sum);
         nets.critic_1 = update_parameters(
             critic_1_loss,
             nets.critic_1,
@@ -172,7 +172,7 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B> + AutodiffModule<B>>
         );
 
         let q2 = nets.critic_2.forward(state_batch).gather(1, action_batch);
-        let critic_2_loss = MseLoss::default().forward(q_target, q2, Reduction::Sum);
+        let critic_2_loss = MseLoss.forward(q_target, q2, Reduction::Sum);
         nets.critic_2 = update_parameters(
             critic_2_loss,
             nets.critic_2,
