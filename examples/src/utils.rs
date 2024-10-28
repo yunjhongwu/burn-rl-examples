@@ -21,29 +21,22 @@ fn soft_update_tensor<const N: usize, B: Backend>(
     this: &Param<Tensor<B, N>>,
     that: &Param<Tensor<B, N>>,
     tau: ElemType,
-    tag: impl Into<ParamId>,
 ) -> Param<Tensor<B, N>> {
     let that_weight = that.val();
     let this_weight = this.val();
     let new_weight = this_weight * (1.0 - tau) + that_weight * tau;
 
-    Param::initialized(tag.into(), new_weight)
+    Param::initialized(ParamId::new(), new_weight)
 }
 
 pub fn soft_update_linear<B: Backend>(
     this: Linear<B>,
     that: &Linear<B>,
     tau: ElemType,
-    tag: &str,
 ) -> Linear<B> {
-    let weight = soft_update_tensor(&this.weight, &that.weight, tau, format!("{}.weight", tag));
+    let weight = soft_update_tensor(&this.weight, &that.weight, tau);
     let bias = match (&this.bias, &that.bias) {
-        (Some(this_bias), Some(that_bias)) => Some(soft_update_tensor(
-            this_bias,
-            that_bias,
-            tau,
-            format!("{}.bias", tag),
-        )),
+        (Some(this_bias), Some(that_bias)) => Some(soft_update_tensor(this_bias, that_bias, tau)),
         _ => None,
     };
 

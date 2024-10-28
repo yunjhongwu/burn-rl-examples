@@ -79,9 +79,9 @@ impl<B: Backend> SACCritic<B> for Critic<B> {
         let (linear_0, linear_1, linear_2) = this.consume();
 
         Self {
-            linear_0: soft_update_linear(linear_0, &that.linear_0, tau, "linear_0"),
-            linear_1: soft_update_linear(linear_1, &that.linear_1, tau, "linear_1"),
-            linear_2: soft_update_linear(linear_2, &that.linear_2, tau, "linear_2"),
+            linear_0: soft_update_linear(linear_0, &that.linear_0, tau),
+            linear_1: soft_update_linear(linear_1, &that.linear_1, tau),
+            linear_2: soft_update_linear(linear_2, &that.linear_2, tau),
         }
     }
 }
