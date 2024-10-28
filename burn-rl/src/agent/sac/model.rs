@@ -1,5 +1,5 @@
 use crate::base::{ElemType, Model};
-use burn::module::{Module, Param};
+use burn::module::{Module, Param, ParamId};
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 
@@ -18,7 +18,7 @@ impl<B: Backend> Default for SACTemperature<B> {
     fn default() -> Self {
         Self {
             temperature: Param::initialized(
-                "temperature".into(),
+                ParamId::new(),
                 Tensor::zeros([1, 1], &Default::default()),
             ),
         }
