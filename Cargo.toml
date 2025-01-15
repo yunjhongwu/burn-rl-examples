@@ -1,10 +1,10 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 
 members = [
     "burn-rl", "examples"
 ]
 
 [workspace.dependencies]
-burn = { version = "0.15", features = ["ndarray", "autodiff"] }
+burn = { version = "0.16", features = ["ndarray", "autodiff"] }
 serde = "1"
