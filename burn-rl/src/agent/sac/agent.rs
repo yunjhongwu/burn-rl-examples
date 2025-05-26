@@ -4,7 +4,7 @@ use crate::base::agent::Agent;
 use crate::base::environment::Environment;
 use crate::base::{get_batch, sample_indices, Action, ElemType, Memory};
 use crate::utils::{
-    convert_tenor_to_action, elementwise_min, ref_to_action_tensor, ref_to_not_done_tensor,
+    convert_tensor_to_action, elementwise_min, ref_to_action_tensor, ref_to_not_done_tensor,
     ref_to_reward_tensor, ref_to_state_tensor, sample_action_from_tensor, to_state_tensor,
     update_parameters,
 };
@@ -71,7 +71,7 @@ impl<E: Environment, B: AutodiffBackend, Actor: SACActor<B>> SAC<E, B, Actor> {
         eps_threshold: f64,
     ) -> E::ActionType {
         if random::<f64>() > eps_threshold {
-            convert_tenor_to_action::<E::ActionType, B>(
+            convert_tensor_to_action::<E::ActionType, B>(
                 policy_net.forward(to_state_tensor(state).unsqueeze()),
             )
         } else {
