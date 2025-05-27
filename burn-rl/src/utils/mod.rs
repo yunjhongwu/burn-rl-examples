@@ -15,7 +15,7 @@ pub(crate) fn ref_to_state_tensor<S: State, B: Backend>(state: &S) -> Tensor<B, 
     to_state_tensor(*state)
 }
 
-pub(crate) fn convert_tenor_to_action<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
+pub(crate) fn convert_tensor_to_action<A: Action, B: Backend>(output: Tensor<B, 2>) -> A {
     (output.argmax(1).to_data().as_slice::<i64>().unwrap()[0] as u32).into()
 }
 

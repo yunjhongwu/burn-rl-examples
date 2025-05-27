@@ -3,7 +3,7 @@ use crate::base::agent::Agent;
 use crate::base::environment::Environment;
 use crate::base::{get_batch, sample_indices, Action, Memory};
 use crate::utils::{
-    convert_tenor_to_action, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
+    convert_tensor_to_action, ref_to_action_tensor, ref_to_not_done_tensor, ref_to_reward_tensor,
     ref_to_state_tensor, to_state_tensor, update_parameters,
 };
 use burn::module::AutodiffModule;
@@ -22,7 +22,7 @@ pub struct DQN<E: Environment, B: Backend, M: DQNModel<B>> {
 
 impl<E: Environment, B: Backend, M: DQNModel<B>> Agent<E> for DQN<E, B, M> {
     fn react(&self, state: &E::StateType) -> Option<E::ActionType> {
-        Some(convert_tenor_to_action::<E::ActionType, B>(
+        Some(convert_tensor_to_action::<E::ActionType, B>(
             self.target_net
                 .as_ref()?
                 .infer(ref_to_state_tensor(state).unsqueeze()),
@@ -52,7 +52,7 @@ impl<E: Environment, B: AutodiffBackend, M: DQNModel<B>> DQN<E, B, M> {
         eps_threshold: f64,
     ) -> E::ActionType {
         if random::<f64>() > eps_threshold {
-            convert_tenor_to_action::<E::ActionType, B>(
+            convert_tensor_to_action::<E::ActionType, B>(
                 policy_net.forward(to_state_tensor(state).unsqueeze()),
             )
         } else {
