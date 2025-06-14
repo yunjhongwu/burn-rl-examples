@@ -98,7 +98,6 @@ impl<E: Environment, B: AutodiffBackend, M: PPOModel<B> + AutodiffModule<B>> PPO
                             .as_slice(),
                         &Default::default(),
                     );
-
                     let state_batch =
                         get_batch(memory.states(), &sample_indices, ref_to_state_tensor);
                     let action_batch =
@@ -195,11 +194,10 @@ pub(crate) fn get_gae<B: Backend>(
         returns[i] = running_return;
         advantages[i] = running_advantage;
     }
-
     Some(GAEOutput::new(
-        Tensor::<B, 2>::from_floats(returns.as_slice(), &Default::default())
+        Tensor::<B, 1>::from_floats(returns.as_slice(), &Default::default())
             .reshape([returns.len(), 1]),
-        Tensor::<B, 2>::from_floats(advantages.as_slice(), &Default::default())
+        Tensor::<B, 1>::from_floats(advantages.as_slice(), &Default::default())
             .reshape([advantages.len(), 1]),
     ))
 }
