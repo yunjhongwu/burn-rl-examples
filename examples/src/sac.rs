@@ -158,8 +158,7 @@ pub fn run<E: Environment, B: AutodiffBackend>(
                     episode_done = true;
 
                     println!(
-                        "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
-                        episode, episode_reward, episode_duration
+                        "{{\"episode\": {episode}, \"reward\": {episode_reward:.4}, \"duration\": {episode_duration}}}",
                     );
                 } else {
                     state = *snapshot.state();

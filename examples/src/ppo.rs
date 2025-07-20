@@ -100,8 +100,7 @@ pub fn run<E: Environment, B: AutodiffBackend>(
             }
         }
         println!(
-            "{{\"episode\": {}, \"reward\": {:.4}, \"duration\": {}}}",
-            episode, episode_reward, episode_duration
+            "{{\"episode\": {episode}, \"reward\": {episode_reward:.4}, \"duration\": {episode_duration}}}",
         );
 
         model = MyAgent::train::<MEMORY_SIZE>(model, &memory, &mut optimizer, &config);
