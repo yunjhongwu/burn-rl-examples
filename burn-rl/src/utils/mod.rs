@@ -1,9 +1,9 @@
 use crate::base::{Action, ElemType, State};
 use burn::module::AutodiffModule;
+use burn::optim::LearningRate;
 use burn::optim::{GradientsParams, Optimizer};
 use burn::tensor::backend::{AutodiffBackend, Backend};
 use burn::tensor::{Int, Tensor};
-use burn::optim::LearningRate;
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::thread_rng;
 
